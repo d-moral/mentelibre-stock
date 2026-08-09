@@ -1,0 +1,10 @@
+const express = require('express');
+const router = express.Router();
+const pedidoController = require('../controllers/pedidoController');
+
+router.get('/', pedidoController.listar);
+router.get('/:id', pedidoController.obtenerUno);
+router.post('/', pedidoController.crear);
+router.put('/:id/estado', pedidoController.cambiarEstado);
+
+module.exports = router;
