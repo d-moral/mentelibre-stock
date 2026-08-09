@@ -1,4 +1,5 @@
 const Pedido = require('../models/pedido');
+const { generarBoleta } = require('../pdf/boleta');
 
 async function listar(req, res) {
     try {
@@ -75,4 +76,17 @@ async function cambiarEstado(req, res) {
     }
 }
 
-module.exports = { listar, obtenerUno, crear, cambiarEstado };
+async function descargarBoleta(req, res) {
+    try {
+        const pedido = await Pedido.obtenerConItems(req.params.id);
+        if (!pedido) {
+            return res.status(404).json({ error: 'Pedido no encontrado' });
+        }
+        generarBoleta(pedido, res);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error al generar la boleta' });
+    }
+}
+
+module.exports = { listar, obtenerUno, crear, cambiarEstado, descargarBoleta };
