@@ -226,7 +226,18 @@ function actualizarGananciaDia() {
     );
 
     const total = pedidosDelDia.reduce((acc, p) => acc + Number(p.total), 0);
-    span.textContent = `Ganancia del día: ${formatearPrecio(total)}`;
+
+    const totalElias = pedidosDelDia
+        .filter(p => p.destinatario === 'elias')
+        .reduce((acc, p) => acc + Number(p.total), 0);
+
+    const totalLudmila = pedidosDelDia
+        .filter(p => p.destinatario === 'ludmila')
+        .reduce((acc, p) => acc + Number(p.total), 0);
+
+    span.textContent =
+        `Ganancia del día: ${formatearPrecio(total)} ` +
+        `(Elías: ${formatearPrecio(totalElias)}, Ludmila: ${formatearPrecio(totalLudmila)})`;
 }
 
 async function cancelarPedido(id) {
