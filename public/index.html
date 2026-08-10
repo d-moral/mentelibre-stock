@@ -52,13 +52,20 @@
             <button id="btn-nuevo-pedido">+ Nuevo pedido</button>
         </div>
 
+        <div class="subtabs">
+            <button class="subtab-btn active" data-substate="pendiente">Pendientes</button>
+            <button class="subtab-btn" data-substate="realizado">Realizados</button>
+            <button class="subtab-btn" data-substate="cancelado">Cancelados</button>
+        </div>
+
         <table>
             <thead>
             <tr>
+                <th></th>
                 <th>Cliente</th>
                 <th>Fecha</th>
                 <th>Total</th>
-                <th>Disponibilidad</th>
+                <th>Estado</th>
                 <th>Acciones</th>
             </tr>
             </thead>
