@@ -27,18 +27,36 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // ---------- PRODUCTOS ----------
 let productosCache = [];
+document.getElementById('filtro-seccion').addEventListener('change', renderizarProductos);
 
 async function cargarProductos() {
     const res = await fetch(`${API}/productos`);
     productosCache = await res.json();
+    actualizarFiltroSecciones();
     renderizarProductos();
+}
+
+function actualizarFiltroSecciones() {
+    const select = document.getElementById('filtro-seccion');
+    const seccionActual = select.value;
+    const secciones = [...new Set(productosCache.map(p => p.seccion).filter(Boolean))];
+
+    select.innerHTML = '<option value="">Todas</option>' +
+        secciones.map(s => `<option value="${s}">${s}</option>`).join('');
+
+    select.value = seccionActual; // mantiene la selección al recargar
 }
 
 function renderizarProductos() {
     const tbody = document.getElementById('tabla-productos');
     tbody.innerHTML = '';
 
-    for (const p of productosCache) {
+    const seccionElegida = document.getElementById('filtro-seccion').value;
+    const productosFiltrados = seccionElegida
+        ? productosCache.filter(p => p.seccion === seccionElegida)
+        : productosCache;
+
+    for (const p of productosFiltrados) {
         const tr = document.createElement('tr');
         const disponible = p.stock_actual > 0;
         const etiqueta = disponible ? 'disponible' : 'sin stock';
@@ -58,7 +76,6 @@ function renderizarProductos() {
         tbody.appendChild(tr);
     }
 }
-
 async function reponerStock(id) {
     const cantidad = prompt('¿Cuántas unidades querés agregar al stock?');
     if (cantidad === null) return; // canceló
@@ -109,6 +126,7 @@ function abrirEditarProducto(id) {
     document.getElementById('producto-precio-compra').value = p.precio_compra;
     document.getElementById('producto-precio-venta').value = p.precio_venta;
     document.getElementById('producto-proveedor').value = p.proveedor || '';
+    document.getElementById('producto-seccion').value = p.seccion || '';
     document.getElementById('modal-producto-titulo').textContent = 'Editar producto';
     modalProducto.classList.remove('hidden');
 }
@@ -124,6 +142,7 @@ formProducto.addEventListener('submit', async (e) => {
         precio_compra: Number(document.getElementById('producto-precio-compra').value),
         precio_venta: Number(document.getElementById('producto-precio-venta').value),
         proveedor: document.getElementById('producto-proveedor').value || null,
+        seccion: document.getElementById('producto-seccion').value || null,
     };
 
     if (id) {

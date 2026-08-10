@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS productos (
     precio_venta            NUMERIC(10,2) NOT NULL,
     precio_venta_mayor      NUMERIC(10,2),
     proveedor               VARCHAR(150),
+    seccion                  VARCHAR(100),
     creado_en               TIMESTAMP NOT NULL DEFAULT NOW(),
     actualizado_en          TIMESTAMP NOT NULL DEFAULT NOW()
     );

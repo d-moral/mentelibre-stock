@@ -212,3 +212,14 @@ th {
 .item-pedido input {
     width: 70px;
 }
+
+.filtro-seccion {
+    margin-bottom: 1rem;
+}
+
+.filtro-seccion select {
+    padding: 0.4rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    margin-left: 0.5rem;
+}
