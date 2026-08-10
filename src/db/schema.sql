@@ -23,6 +23,9 @@ CREATE TABLE IF NOT EXISTS pedidos (
     fecha           TIMESTAMP NOT NULL DEFAULT NOW(),
     estado          VARCHAR(20) NOT NULL DEFAULT 'pendiente', -- 'pendiente' | 'confirmado' | 'vendido' | 'cancelado'
     total           NUMERIC(10,2) NOT NULL DEFAULT 0
+    metodo_pago     VARCHAR(20) NOT NULL DEFAULT 'efectivo', -- 'efectivo' | 'transferencia'
+    destinatario    VARCHAR(50) -- 'elias' | 'ludmila', solo aplica si metodo_pago = 'transferencia'
+    );
     );
 
 CREATE TABLE IF NOT EXISTS pedido_items (

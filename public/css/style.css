@@ -149,9 +149,14 @@ th {
     justify-content: center;
 }
 
+.modal-content label.hidden {
+    display: none;
+}
+
 .modal.hidden {
     display: none;
 }
+
 
 .modal-content {
     background: white;

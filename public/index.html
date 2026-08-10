@@ -112,6 +112,23 @@
             <label>Dirección <input type="text" id="pedido-direccion"></label>
             <label>Contacto <input type="text" id="pedido-contacto"></label>
 
+            <label>Método de pago
+                <select id="pedido-metodo-pago" required>
+                    <option value="">Elegir...</option>
+                    <option value="efectivo">Efectivo</option>
+                    <option value="transferencia">Transferencia</option>
+                </select>
+            </label>
+
+            <label id="label-destinatario" class="hidden">Destinatario
+                <select id="pedido-destinatario">
+                    <option value="">Elegir...</option>
+                    <option value="elias">Elías</option>
+                    <option value="ludmila">Ludmila</option>
+                </select>
+            </label>
+
+
             <h4>Productos</h4>
             <div id="pedido-items"></div>
             <button type="button" id="btn-agregar-item">+ Agregar producto</button>

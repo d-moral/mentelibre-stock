@@ -257,6 +257,7 @@ const itemsContainer = document.getElementById('pedido-items');
 document.getElementById('btn-nuevo-pedido').addEventListener('click', () => {
     formPedido.reset();
     itemsContainer.innerHTML = '';
+    document.getElementById('label-destinatario').classList.add('hidden');
     agregarItemPedido();
     modalPedido.classList.remove('hidden');
 });
@@ -292,6 +293,18 @@ function agregarItemPedido() {
 formPedido.addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    const metodo_pago = document.getElementById('pedido-metodo-pago').value;
+    const destinatario = document.getElementById('pedido-destinatario').value;
+
+    if (!metodo_pago) {
+        alert('Elegí un método de pago');
+        return;
+    }
+    if (metodo_pago === 'transferencia' && !destinatario) {
+        alert('Elegí el destinatario de la transferencia');
+        return;
+    }
+
     const items = Array.from(itemsContainer.querySelectorAll('.item-pedido')).map(div => ({
         producto_id: Number(div.querySelector('.item-producto').value),
         cantidad: Number(div.querySelector('.item-cantidad').value),
@@ -301,6 +314,8 @@ formPedido.addEventListener('submit', async (e) => {
         nombre_cliente: document.getElementById('pedido-cliente').value,
         direccion: document.getElementById('pedido-direccion').value || null,
         contacto: document.getElementById('pedido-contacto').value || null,
+        metodo_pago,
+        destinatario: destinatario || null,
         items,
     };
 
@@ -342,3 +357,12 @@ document.getElementById('btn-limpiar-fecha').addEventListener('click', () => {
     renderizarPedidos();
 });
 
+document.getElementById('pedido-metodo-pago').addEventListener('change', (e) => {
+    const labelDestinatario = document.getElementById('label-destinatario');
+    if (e.target.value === 'transferencia') {
+        labelDestinatario.classList.remove('hidden');
+    } else {
+        labelDestinatario.classList.add('hidden');
+        document.getElementById('pedido-destinatario').value = '';
+    }
+});

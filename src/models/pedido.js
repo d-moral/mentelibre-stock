@@ -1,6 +1,6 @@
 const pool = require('../db');
 
-async function crear({ nombre_cliente, direccion, contacto, items }) {
+async function crear({ nombre_cliente, direccion, contacto, items, metodo_pago, destinatario }) {
     const client = await pool.connect();
 
     try {
@@ -37,11 +37,12 @@ async function crear({ nombre_cliente, direccion, contacto, items }) {
 
         // 3. Crear la cabecera del pedido
         const { rows: pedidoRows } = await client.query(
-            `INSERT INTO pedidos (nombre_cliente, direccion, contacto, total)
-       VALUES ($1, $2, $3, $4)
+            `INSERT INTO pedidos (nombre_cliente, direccion, contacto, total, metodo_pago, destinatario)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-            [nombre_cliente, direccion, contacto, total]
+            [nombre_cliente, direccion, contacto, total, metodo_pago, destinatario || null]
         );
+
         const pedido = pedidoRows[0];
 
         // 4. Crear cada item (con snapshot de nombre y precio) y descontar stock
