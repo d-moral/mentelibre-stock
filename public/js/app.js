@@ -165,7 +165,7 @@ formProducto.addEventListener('submit', async (e) => {
 
 // ---------- PEDIDOS ----------
 let pedidosCache = [];
-
+let subEstadoPedidosActivo = 'pendiente';
 async function cargarPedidos() {
     const res = await fetch(`${API}/pedidos`);
     pedidosCache = await res.json();
@@ -176,11 +176,19 @@ function renderizarPedidos() {
     const tbody = document.getElementById('tabla-pedidos');
     tbody.innerHTML = '';
 
-    for (const p of pedidosCache) {
+    const pedidosFiltrados = pedidosCache.filter(p => {
+        if (subEstadoPedidosActivo === 'realizado') {
+            return p.estado === 'confirmado' || p.estado === 'vendido';
+        }
+        return p.estado === subEstadoPedidosActivo;
+    });
+
+    for (const p of pedidosFiltrados) {
         const tr = document.createElement('tr');
-        const puedeCancel = p.estado !== 'cancelado';
+        const esPendiente = p.estado === 'pendiente';
 
         tr.innerHTML = `
+      <td>${esPendiente ? `<input type="checkbox" onchange="marcarComoRealizado(${p.id})">` : ''}</td>
       <td>${p.nombre_cliente}</td>
       <td>${formatearFecha(p.fecha)}</td>
       <td>${formatearPrecio(p.total)}</td>
@@ -189,13 +197,12 @@ function renderizarPedidos() {
         <a href="${API}/pedidos/${p.id}/boleta" target="_blank">
           <button class="btn-secundario" type="button">Boleta</button>
         </a>
-        ${puedeCancel ? `<button class="btn-peligro" onclick="cancelarPedido(${p.id})">Cancelar</button>` : ''}
+        ${esPendiente ? `<button class="btn-peligro" onclick="cancelarPedido(${p.id})">Cancelar</button>` : ''}
       </td>
     `;
         tbody.appendChild(tr);
     }
 }
-
 async function cancelarPedido(id) {
     if (!confirm('¿Cancelar este pedido? Se devolverá el stock.')) return;
     await fetch(`${API}/pedidos/${id}/estado`, {
@@ -205,6 +212,15 @@ async function cancelarPedido(id) {
     });
     cargarPedidos();
     cargarProductos(); // el stock cambió, refrescamos también esta tabla
+}
+
+async function marcarComoRealizado(id) {
+    await fetch(`${API}/pedidos/${id}/estado`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'vendido' }),
+    });
+    cargarPedidos();
 }
 
 // ---------- MODAL PEDIDO ----------
@@ -279,3 +295,11 @@ formPedido.addEventListener('submit', async (e) => {
     cargarProductos(); // el stock cambió
 });
 
+document.querySelectorAll('.subtab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        subEstadoPedidosActivo = btn.dataset.substate;
+        renderizarPedidos();
+    });
+});
