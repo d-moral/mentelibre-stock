@@ -6,11 +6,11 @@ async function crear({ nombre_cliente, direccion, contacto, items }) {
     try {
         await client.query('BEGIN');
 
-        // 1. Verificar stock disponible y traer precio_venta de cada producto
+        // 1. Verificar stock disponible y traer nombre + precio_venta de cada producto
         const productosInfo = [];
         for (const item of items) {
             const { rows } = await client.query(
-                'SELECT id, precio_venta, stock_actual, estado FROM productos WHERE id = $1 FOR UPDATE',
+                'SELECT id, nombre, precio_venta, stock_actual FROM productos WHERE id = $1 FOR UPDATE',
                 [item.producto_id]
             );
             const producto = rows[0];
@@ -18,14 +18,15 @@ async function crear({ nombre_cliente, direccion, contacto, items }) {
             if (!producto) {
                 throw new Error(`Producto ${item.producto_id} no existe`);
             }
-            if (producto.estado === 'inactivo') {
-                throw new Error(`Producto ${item.producto_id} no está disponible`);
-            }
             if (producto.stock_actual < item.cantidad) {
                 throw new Error(`Stock insuficiente para el producto ${item.producto_id}`);
             }
 
-            productosInfo.push({ ...item, precio_unitario: producto.precio_venta });
+            productosInfo.push({
+                ...item,
+                producto_nombre: producto.nombre,
+                precio_unitario: producto.precio_venta,
+            });
         }
 
         // 2. Calcular el total
@@ -43,18 +44,17 @@ async function crear({ nombre_cliente, direccion, contacto, items }) {
         );
         const pedido = pedidoRows[0];
 
-        // 4. Crear cada item y descontar stock
+        // 4. Crear cada item (con snapshot de nombre y precio) y descontar stock
         for (const item of productosInfo) {
             await client.query(
-                `INSERT INTO pedido_items (pedido_id, producto_id, cantidad, precio_unitario)
-         VALUES ($1, $2, $3, $4)`,
-                [pedido.id, item.producto_id, item.cantidad, item.precio_unitario]
+                `INSERT INTO pedido_items (pedido_id, producto_id, producto_nombre, cantidad, precio_unitario)
+         VALUES ($1, $2, $3, $4, $5)`,
+                [pedido.id, item.producto_id, item.producto_nombre, item.cantidad, item.precio_unitario]
             );
 
             await client.query(
                 `UPDATE productos
          SET stock_actual = stock_actual - $1,
-             estado = CASE WHEN stock_actual - $1 <= 0 THEN 'sin_stock' ELSE estado END,
              actualizado_en = NOW()
          WHERE id = $2`,
                 [item.cantidad, item.producto_id]
@@ -86,12 +86,13 @@ async function obtenerConItems(id) {
     const pedido = pedidoRows[0];
     if (!pedido) return null;
 
+    // Usamos el producto_nombre guardado en pedido_items (la "foto" al momento
+    // del pedido), NO un JOIN a productos — así la boleta se ve bien aunque
+    // el producto original ya haya sido borrado.
     const { rows: items } = await pool.query(
-        `SELECT pi.id, pi.producto_id, p.nombre AS producto_nombre,
-            pi.cantidad, pi.precio_unitario
-     FROM pedido_items pi
-     JOIN productos p ON p.id = pi.producto_id
-     WHERE pi.pedido_id = $1`,
+        `SELECT id, producto_id, producto_nombre, cantidad, precio_unitario
+     FROM pedido_items
+     WHERE pedido_id = $1`,
         [id]
     );
 
@@ -125,8 +126,10 @@ async function cancelar(id) {
             throw new Error('El pedido ya está cancelado');
         }
 
+        // Solo devolvemos stock a productos que todavía existen
+        // (producto_id puede ser NULL si el producto fue borrado después)
         const { rows: items } = await client.query(
-            'SELECT producto_id, cantidad FROM pedido_items WHERE pedido_id = $1',
+            'SELECT producto_id, cantidad FROM pedido_items WHERE pedido_id = $1 AND producto_id IS NOT NULL',
             [id]
         );
 
@@ -134,7 +137,6 @@ async function cancelar(id) {
             await client.query(
                 `UPDATE productos
          SET stock_actual = stock_actual + $1,
-             estado = CASE WHEN estado = 'sin_stock' THEN 'activo' ELSE estado END,
              actualizado_en = NOW()
          WHERE id = $2`,
                 [item.cantidad, item.producto_id]
