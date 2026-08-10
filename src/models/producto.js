@@ -16,43 +16,45 @@ async function getById(id) {
 }
 
 async function create(producto) {
-  const {
-    nombre,
-    descripcion,
-    stock_actual,
-    precio_compra,
-    precio_compra_mayor,
-    precio_venta,
-    precio_venta_mayor,
-    proveedor,
-  } = producto;
+    const {
+        nombre,
+        descripcion,
+        stock_actual,
+        precio_compra,
+        precio_compra_mayor,
+        precio_venta,
+        precio_venta_mayor,
+        proveedor,
+        seccion,
+    } = producto;
 
-  const result = await pool.query(
-    `INSERT INTO productos
+    const result = await pool.query(
+        `INSERT INTO productos
       (nombre, descripcion, stock_actual, precio_compra, precio_compra_mayor,
-       precio_venta, precio_venta_mayor, proveedor)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       precio_venta, precio_venta_mayor, proveedor, seccion)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING *`,
-    [nombre, descripcion, stock_actual, precio_compra, precio_compra_mayor,
-     precio_venta, precio_venta_mayor, proveedor]
-  );
+        [nombre, descripcion, stock_actual, precio_compra, precio_compra_mayor,
+            precio_venta, precio_venta_mayor, proveedor, seccion]
+    );
   return result.rows[0];
 }
 
 async function update(id, producto) {
-  const {
-    nombre,
-    descripcion,
-    stock_actual,
-    precio_compra,
-    precio_compra_mayor,
-    precio_venta,
-    precio_venta_mayor,
-    proveedor,
-  } = producto;
+    const {
+        nombre,
+        descripcion,
+        stock_actual,
+        precio_compra,
+        precio_compra_mayor,
+        precio_venta,
+        precio_venta_mayor,
+        proveedor,
+        seccion,
+    } = producto;
 
-  const result = await pool.query(
-    `UPDATE productos SET
+    const result = await pool.query(
+        `UPDATE productos SET
       nombre = $1,
       descripcion = $2,
       stock_actual = $3,
@@ -61,12 +63,13 @@ async function update(id, producto) {
       precio_venta = $6,
       precio_venta_mayor = $7,
       proveedor = $8,
+      seccion = $9,
       actualizado_en = NOW()
-     WHERE id = $9
+     WHERE id = $10
      RETURNING *`,
-    [nombre, descripcion, stock_actual, precio_compra, precio_compra_mayor,
-     precio_venta, precio_venta_mayor, proveedor, id]
-  );
+        [nombre, descripcion, stock_actual, precio_compra, precio_compra_mayor,
+            precio_venta, precio_venta_mayor, proveedor, seccion, id]
+    );
   return result.rows[0];
 }
 
