@@ -26,14 +26,22 @@ async function obtenerUno(req, res) {
 
 async function crear(req, res) {
     try {
-        const { nombre_cliente, direccion, contacto, items } = req.body;
+
+        const { nombre_cliente, direccion, contacto, items, metodo_pago, destinatario } = req.body;
 
         if (!nombre_cliente) {
             return res.status(400).json({ error: 'nombre_cliente es obligatorio' });
         }
+        if (!['efectivo', 'transferencia'].includes(metodo_pago)) {
+            return res.status(400).json({ error: 'metodo_pago debe ser "efectivo" o "transferencia"' });
+        }
+        if (metodo_pago === 'transferencia' && !['elias', 'ludmila'].includes(destinatario)) {
+            return res.status(400).json({ error: 'destinatario es obligatorio y debe ser "elias" o "ludmila" cuando el método es transferencia' });
+        }
         if (!Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ error: 'El pedido debe tener al menos un item' });
         }
+
         for (const item of items) {
             if (!item.producto_id || !item.cantidad || item.cantidad <= 0) {
                 return res.status(400).json({
@@ -42,7 +50,7 @@ async function crear(req, res) {
             }
         }
 
-        const pedido = await Pedido.crear({ nombre_cliente, direccion, contacto, items });
+        const pedido = await Pedido.crear({ nombre_cliente, direccion, contacto, items, metodo_pago, destinatario });
         res.status(201).json(pedido);
     } catch (err) {
         console.error(err);
