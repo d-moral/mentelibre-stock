@@ -9,7 +9,6 @@ CREATE TABLE IF NOT EXISTS productos (
     precio_venta            NUMERIC(10,2) NOT NULL,
     precio_venta_mayor      NUMERIC(10,2),
     proveedor               VARCHAR(150),
-    estado                  VARCHAR(20) NOT NULL DEFAULT 'activo', -- 'activo' | 'sin_stock' | 'inactivo'
     creado_en               TIMESTAMP NOT NULL DEFAULT NOW(),
     actualizado_en          TIMESTAMP NOT NULL DEFAULT NOW()
     );
@@ -25,11 +24,11 @@ CREATE TABLE IF NOT EXISTS pedidos (
     total           NUMERIC(10,2) NOT NULL DEFAULT 0
     );
 
--- Detalle de cada pedido (líneas de producto)
 CREATE TABLE IF NOT EXISTS pedido_items (
                                             id              SERIAL PRIMARY KEY,
                                             pedido_id       INTEGER NOT NULL REFERENCES pedidos(id) ON DELETE CASCADE,
-    producto_id     INTEGER NOT NULL REFERENCES productos(id),
+    producto_id     INTEGER REFERENCES productos(id) ON DELETE SET NULL,
+    producto_nombre VARCHAR(150) NOT NULL,
     cantidad        INTEGER NOT NULL,
     precio_unitario NUMERIC(10,2) NOT NULL
     );

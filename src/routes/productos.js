@@ -8,4 +8,5 @@ router.post('/', productoController.crear);
 router.put('/:id', productoController.actualizar);
 router.delete('/:id', productoController.eliminar);
 
+router.patch('/:id/stock', productoController.reponerStock);
 module.exports = router;

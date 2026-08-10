@@ -40,18 +40,47 @@ function renderizarProductos() {
 
     for (const p of productosCache) {
         const tr = document.createElement('tr');
+        const disponible = p.stock_actual > 0;
+        const etiqueta = disponible ? 'disponible' : 'sin stock';
+        const claseEstado = disponible ? 'estado-activo' : 'estado-sin_stock';
+
         tr.innerHTML = `
       <td>${p.nombre}</td>
       <td>${p.stock_actual}</td>
       <td>${formatearPrecio(p.precio_venta)}</td>
-      <td class="estado-${p.estado}">${p.estado}</td>
+      <td class="${claseEstado}">${etiqueta}</td>
       <td class="acciones-cell">
         <button class="btn-secundario" onclick="abrirEditarProducto(${p.id})">Editar</button>
-        <button class="btn-peligro" onclick="darDeBajaProducto(${p.id})">Dar de baja</button>
+        <button class="btn-secundario" onclick="reponerStock(${p.id})">+ Reponer</button>
+        <button class="btn-peligro" onclick="eliminarProducto(${p.id})">Eliminar</button>
       </td>
     `;
         tbody.appendChild(tr);
     }
+}
+
+async function reponerStock(id) {
+    const cantidad = prompt('¿Cuántas unidades querés agregar al stock?');
+    if (cantidad === null) return; // canceló
+
+    const numero = Number(cantidad);
+    if (!numero || numero <= 0) {
+        alert('Ingresá un número mayor a 0');
+        return;
+    }
+
+    await fetch(`${API}/productos/${id}/stock`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cantidad: numero }),
+    });
+    cargarProductos();
+}
+
+async function eliminarProducto(id) {
+    if (!confirm('¿Eliminar este producto? Esta acción no se puede deshacer.')) return;
+    await fetch(`${API}/productos/${id}`, { method: 'DELETE' });
+    cargarProductos();
 }
 
 // ---------- MODAL PRODUCTO ----------
@@ -82,12 +111,6 @@ function abrirEditarProducto(id) {
     document.getElementById('producto-proveedor').value = p.proveedor || '';
     document.getElementById('modal-producto-titulo').textContent = 'Editar producto';
     modalProducto.classList.remove('hidden');
-}
-
-async function darDeBajaProducto(id) {
-    if (!confirm('¿Dar de baja este producto?')) return;
-    await fetch(`${API}/productos/${id}`, { method: 'DELETE' });
-    cargarProductos();
 }
 
 formProducto.addEventListener('submit', async (e) => {
@@ -189,9 +212,9 @@ function agregarItemPedido() {
 
     const opciones = productosCache
         .map(p => {
-            const sinStock = p.estado !== 'activo';
-            return `<option value="${p.id}" ${sinStock ? 'disabled' : ''}>
-        ${p.nombre} ${sinStock ? '(sin stock)' : ''}
+            const noDisponible = p.stock_actual <= 0;
+            return `<option value="${p.id}" ${noDisponible ? 'disabled' : ''}>
+        ${p.nombre} ${noDisponible ? '(sin stock)' : ''}
       </option>`;
         })
         .join('');
