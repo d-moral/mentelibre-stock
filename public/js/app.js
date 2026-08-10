@@ -166,6 +166,7 @@ formProducto.addEventListener('submit', async (e) => {
 // ---------- PEDIDOS ----------
 let pedidosCache = [];
 let subEstadoPedidosActivo = 'pendiente';
+let fechaFiltroActiva = '';
 async function cargarPedidos() {
     const res = await fetch(`${API}/pedidos`);
     pedidosCache = await res.json();
@@ -177,10 +178,15 @@ function renderizarPedidos() {
     tbody.innerHTML = '';
 
     const pedidosFiltrados = pedidosCache.filter(p => {
-        if (subEstadoPedidosActivo === 'realizado') {
-            return p.estado === 'confirmado' || p.estado === 'vendido';
-        }
-        return p.estado === subEstadoPedidosActivo;
+        const coincideEstado = subEstadoPedidosActivo === 'realizado'
+            ? (p.estado === 'confirmado' || p.estado === 'vendido')
+            : p.estado === subEstadoPedidosActivo;
+
+        const coincideFecha = fechaFiltroActiva
+            ? p.fecha.startsWith(fechaFiltroActiva)
+            : true;
+
+        return coincideEstado && coincideFecha;
     });
 
     for (const p of pedidosFiltrados) {
@@ -202,7 +208,27 @@ function renderizarPedidos() {
     `;
         tbody.appendChild(tr);
     }
+
+    actualizarGananciaDia();
 }
+
+function actualizarGananciaDia() {
+    const span = document.getElementById('ganancia-dia');
+
+    if (!fechaFiltroActiva) {
+        span.textContent = '';
+        return;
+    }
+
+    const pedidosDelDia = pedidosCache.filter(p =>
+        p.fecha.startsWith(fechaFiltroActiva) &&
+        (p.estado === 'confirmado' || p.estado === 'vendido')
+    );
+
+    const total = pedidosDelDia.reduce((acc, p) => acc + Number(p.total), 0);
+    span.textContent = `Ganancia del día: ${formatearPrecio(total)}`;
+}
+
 async function cancelarPedido(id) {
     if (!confirm('¿Cancelar este pedido? Se devolverá el stock.')) return;
     await fetch(`${API}/pedidos/${id}/estado`, {
@@ -303,3 +329,16 @@ document.querySelectorAll('.subtab-btn').forEach(btn => {
         renderizarPedidos();
     });
 });
+
+
+document.getElementById('filtro-fecha').addEventListener('change', (e) => {
+    fechaFiltroActiva = e.target.value;
+    renderizarPedidos();
+});
+
+document.getElementById('btn-limpiar-fecha').addEventListener('click', () => {
+    fechaFiltroActiva = '';
+    document.getElementById('filtro-fecha').value = '';
+    renderizarPedidos();
+});
+
