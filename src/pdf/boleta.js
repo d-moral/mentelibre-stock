@@ -80,8 +80,14 @@ function generarBoleta(pedido, res) {
     doc.font('Helvetica');
     doc.moveDown();
 
+    // Método de pago
+    const metodoTexto = pedido.metodo_pago === 'transferencia'
+        ? `Transferencia (${pedido.destinatario === 'elias' ? 'Elías' : 'Ludmila'})`
+        : 'Efectivo';
+    doc.fontSize(10).text(`Método de pago: ${metodoTexto}`);
+
     // Estado
-    doc.fontSize(10).text(`Estado: ${pedido.estado.toUpperCase()}`);
+    doc.text(`Estado: ${pedido.estado.toUpperCase()}`);
     doc.moveDown(2);
 
     doc.fontSize(11).text('¡Gracias por su compra!', { align: 'center' });

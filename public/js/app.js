@@ -19,6 +19,14 @@ function formatearFecha(fecha) {
     return new Date(fecha).toLocaleDateString('es-AR');
 }
 
+function fechaLocalISO(fechaISO) {
+    const d = new Date(fechaISO);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 // ---------- CARGA INICIAL ----------
 window.addEventListener('DOMContentLoaded', () => {
     cargarProductos();
@@ -183,7 +191,7 @@ function renderizarPedidos() {
             : p.estado === subEstadoPedidosActivo;
 
         const coincideFecha = fechaFiltroActiva
-            ? p.fecha.startsWith(fechaFiltroActiva)
+            ? fechaLocalISO(p.fecha) === fechaFiltroActiva
             : true;
 
         return coincideEstado && coincideFecha;
@@ -193,13 +201,19 @@ function renderizarPedidos() {
         const tr = document.createElement('tr');
         const esPendiente = p.estado === 'pendiente';
 
+        const iniciales = p.metodo_pago === 'transferencia'
+            ? `Transf. (${p.destinatario === 'elias' ? 'E' : 'L'})`
+            : 'Efectivo';
+
         tr.innerHTML = `
       <td>${esPendiente ? `<input type="checkbox" onchange="marcarComoRealizado(${p.id})">` : ''}</td>
       <td>${p.nombre_cliente}</td>
       <td>${formatearFecha(p.fecha)}</td>
       <td>${formatearPrecio(p.total)}</td>
+      <td>${iniciales}</td>
       <td class="estado-${p.estado}">${p.estado}</td>
       <td class="acciones-cell">
+      
         <a href="${API}/pedidos/${p.id}/boleta" target="_blank">
           <button class="btn-secundario" type="button">Boleta</button>
         </a>
@@ -221,10 +235,10 @@ function actualizarGananciaDia() {
     }
 
     const pedidosDelDia = pedidosCache.filter(p =>
-        p.fecha.startsWith(fechaFiltroActiva) &&
+        fechaLocalISO(p.fecha) === fechaFiltroActiva &&
         (p.estado === 'confirmado' || p.estado === 'vendido')
     );
-
+    
     const total = pedidosDelDia.reduce((acc, p) => acc + Number(p.total), 0);
 
     const totalElias = pedidosDelDia
