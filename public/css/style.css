@@ -369,3 +369,62 @@ th {
     font-size: 0.9rem;
     color: #475569;
 }
+
+.tarjeta-ganancia {
+    background: white;
+    border-radius: 10px;
+    padding: 1.2rem 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.ganancia-total {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.ganancia-label {
+    font-size: 0.85rem;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.ganancia-valor {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #16a34a;
+}
+
+.ganancia-desglose {
+    display: flex;
+    gap: 0.8rem;
+}
+
+.chip-persona {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 100px;
+}
+
+.chip-nombre {
+    font-size: 0.75rem;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.chip-valor {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #15803d;
+}

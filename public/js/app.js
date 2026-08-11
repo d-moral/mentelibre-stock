@@ -274,10 +274,10 @@ function renderizarPedidos() {
 }
 
 function actualizarGananciaDia() {
-    const span = document.getElementById('ganancia-dia');
+    const tarjeta = document.getElementById('tarjeta-ganancia');
 
     if (!fechaFiltroActiva) {
-        span.textContent = '';
+        tarjeta.classList.add('hidden');
         return;
     }
 
@@ -285,7 +285,7 @@ function actualizarGananciaDia() {
         fechaLocalISO(p.fecha) === fechaFiltroActiva &&
         (p.estado === 'confirmado' || p.estado === 'vendido')
     );
-    
+
     const total = pedidosDelDia.reduce((acc, p) => acc + Number(p.total), 0);
 
     const totalElias = pedidosDelDia
@@ -296,9 +296,11 @@ function actualizarGananciaDia() {
         .filter(p => p.destinatario === 'ludmila')
         .reduce((acc, p) => acc + Number(p.total), 0);
 
-    span.textContent =
-        `Ganancia del día: ${formatearPrecio(total)} ` +
-        `(Elías: ${formatearPrecio(totalElias)}, Ludmila: ${formatearPrecio(totalLudmila)})`;
+    document.getElementById('ganancia-total-valor').textContent = formatearPrecio(total);
+    document.getElementById('ganancia-elias-valor').textContent = formatearPrecio(totalElias);
+    document.getElementById('ganancia-ludmila-valor').textContent = formatearPrecio(totalLudmila);
+
+    tarjeta.classList.remove('hidden');
 }
 
 async function cancelarPedido(id) {

@@ -1,11 +1,12 @@
 const PDFDocument = require('pdfkit');
 
-const NEGOCIO = {
-    nombre: 'MI NEGOCIO',
-    cuit: 'XX-XXXXXXXX-X',
-    direccion: 'Dirección / Datos de contacto',
-};
+const path = require('path');
 
+const NEGOCIO = {
+    nombre: 'MENTELIBRE',
+    contacto: '2224511201',
+    logo: path.join(__dirname, 'assets', 'logo.png'),
+};
 function formatearNumero(id) {
     return String(id).padStart(8, '0');
 }
@@ -25,11 +26,21 @@ function generarBoleta(pedido, res) {
 
     doc.pipe(res);
 
-    // Encabezado del negocio
-    doc.fontSize(16).text(NEGOCIO.nombre, { align: 'center' });
-    doc.fontSize(10).text(`CUIT: ${NEGOCIO.cuit}`, { align: 'center' });
-    doc.text(NEGOCIO.direccion, { align: 'center' });
-    doc.moveDown();
+// Encabezado del negocio
+    const inicioEncabezado = doc.y;
+    const anchoLogo = 50;
+
+    doc.image(
+        NEGOCIO.logo,
+        doc.page.width - doc.page.margins.right - anchoLogo,
+        inicioEncabezado,
+        { width: anchoLogo }
+    );
+
+    doc.fontSize(16).text(NEGOCIO.nombre, doc.page.margins.left, inicioEncabezado);
+    doc.fontSize(10).text(`Contacto: ${NEGOCIO.contacto}`, doc.page.margins.left, doc.y);
+
+    doc.moveDown(2);
     doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
     doc.moveDown();
 
@@ -85,10 +96,8 @@ function generarBoleta(pedido, res) {
         ? `Transferencia (${pedido.destinatario === 'elias' ? 'Elías' : 'Ludmila'})`
         : 'Efectivo';
     doc.fontSize(10).text(`Método de pago: ${metodoTexto}`);
-
-    // Estado
-    doc.text(`Estado: ${pedido.estado.toUpperCase()}`);
     doc.moveDown(2);
+
 
     doc.fontSize(11).text('¡Gracias por su compra!', { align: 'center' });
 
