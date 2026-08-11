@@ -19,7 +19,10 @@
     <section id="tab-stock" class="tab-panel active">
         <div class="panel-header">
             <h2>Productos</h2>
-            <button id="btn-nuevo-producto">+ Nuevo producto</button>
+            <div>
+                <button id="btn-ver-proveedores" class="btn-secundario">Ver proveedores</button>
+                <button id="btn-nuevo-producto">+ Nuevo producto</button>
+            </div>
         </div>
 
         <div class="filtro-seccion">
@@ -29,20 +32,9 @@
             </select>
         </div>
 
-        <table>
-            <thead>
-            <tr>
-                <th>Nombre</th>
-                <th>Stock</th>
-                <th>Precio venta</th>
-                <th>Disponibilidad</th>
-                <th>Acciones</th>
-            </tr>
-            </thead>
-            <tbody id="tabla-productos">
+        <div id="grilla-productos" class="grilla-productos">
             <!-- se llena con JS -->
-            </tbody>
-        </table>
+        </div>
     </section>
 
     <!-- PANEL: PEDIDOS -->
@@ -140,6 +132,17 @@
                 <button type="submit">Crear pedido</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- MODAL: proveedores -->
+<div id="modal-proveedores" class="modal hidden">
+    <div class="modal-content">
+        <h3>Proveedores</h3>
+        <div id="lista-proveedores"></div>
+        <div class="modal-actions">
+            <button type="button" id="btn-cerrar-proveedores">Cerrar</button>
+        </div>
     </div>
 </div>
 
