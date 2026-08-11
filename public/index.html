@@ -53,7 +53,23 @@
         <div class="filtro-fecha">
             <label>Fecha: <input type="date" id="filtro-fecha"></label>
             <button id="btn-limpiar-fecha" class="btn-secundario">Ver todas</button>
-            <span id="ganancia-dia"></span>
+        </div>
+
+        <div id="tarjeta-ganancia" class="tarjeta-ganancia hidden">
+            <div class="ganancia-total">
+                <span class="ganancia-label">Ganancia del día</span>
+                <span id="ganancia-total-valor" class="ganancia-valor"></span>
+            </div>
+            <div class="ganancia-desglose">
+                <div class="chip-persona">
+                    <span class="chip-nombre">Elías</span>
+                    <span id="ganancia-elias-valor" class="chip-valor"></span>
+                </div>
+                <div class="chip-persona">
+                    <span class="chip-nombre">Ludmila</span>
+                    <span id="ganancia-ludmila-valor" class="chip-valor"></span>
+                </div>
+            </div>
         </div>
 
         <table>
