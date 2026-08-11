@@ -287,6 +287,7 @@ function actualizarGananciaDia() {
     );
 
     const total = pedidosDelDia.reduce((acc, p) => acc + Number(p.total), 0);
+    const gananciaReal = pedidosDelDia.reduce((acc, p) => acc + Number(p.ganancia_real), 0);
 
     const totalElias = pedidosDelDia
         .filter(p => p.destinatario === 'elias')
@@ -297,6 +298,7 @@ function actualizarGananciaDia() {
         .reduce((acc, p) => acc + Number(p.total), 0);
 
     document.getElementById('ganancia-total-valor').textContent = formatearPrecio(total);
+    document.getElementById('ganancia-real-valor').textContent = formatearPrecio(gananciaReal);
     document.getElementById('ganancia-elias-valor').textContent = formatearPrecio(totalElias);
     document.getElementById('ganancia-ludmila-valor').textContent = formatearPrecio(totalLudmila);
 
