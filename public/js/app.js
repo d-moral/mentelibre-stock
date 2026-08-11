@@ -56,8 +56,8 @@ function actualizarFiltroSecciones() {
 }
 
 function renderizarProductos() {
-    const tbody = document.getElementById('tabla-productos');
-    tbody.innerHTML = '';
+    const grilla = document.getElementById('grilla-productos');
+    grilla.innerHTML = '';
 
     const seccionElegida = document.getElementById('filtro-seccion').value;
     const productosFiltrados = seccionElegida
@@ -65,25 +65,68 @@ function renderizarProductos() {
         : productosCache;
 
     for (const p of productosFiltrados) {
-        const tr = document.createElement('tr');
+        const div = document.createElement('div');
+        div.className = 'tarjeta-producto';
         const disponible = p.stock_actual > 0;
         const etiqueta = disponible ? 'disponible' : 'sin stock';
         const claseEstado = disponible ? 'estado-activo' : 'estado-sin_stock';
 
-        tr.innerHTML = `
-      <td>${p.nombre}</td>
-      <td>${p.stock_actual}</td>
-      <td>${formatearPrecio(p.precio_venta)}</td>
-      <td class="${claseEstado}">${etiqueta}</td>
-      <td class="acciones-cell">
+        div.innerHTML = `
+      <h3>${p.nombre}</h3>
+      ${p.seccion ? `<span class="seccion-tag">${p.seccion}</span>` : ''}
+      <p class="descripcion">${p.descripcion || 'Sin descripción'}</p>
+      <div class="detalle"><span>Stock:</span><span>${p.stock_actual}</span></div>
+      <div class="detalle"><span>Precio venta:</span><span>${formatearPrecio(p.precio_venta)}</span></div>
+      ${p.precio_venta_mayor ? `<div class="detalle"><span>Precio mayorista:</span><span>${formatearPrecio(p.precio_venta_mayor)}</span></div>` : ''}
+      <div class="detalle"><span>Disponibilidad:</span><span class="${claseEstado}">${etiqueta}</span></div>
+      <div class="acciones-tarjeta">
         <button class="btn-secundario" onclick="abrirEditarProducto(${p.id})">Editar</button>
         <button class="btn-secundario" onclick="reponerStock(${p.id})">+ Reponer</button>
         <button class="btn-peligro" onclick="eliminarProducto(${p.id})">Eliminar</button>
-      </td>
+      </div>
     `;
-        tbody.appendChild(tr);
+        grilla.appendChild(div);
     }
 }
+
+const modalProveedores = document.getElementById('modal-proveedores');
+
+document.getElementById('btn-ver-proveedores').addEventListener('click', () => {
+    renderizarProveedores();
+    modalProveedores.classList.remove('hidden');
+});
+
+document.getElementById('btn-cerrar-proveedores').addEventListener('click', () => {
+    modalProveedores.classList.add('hidden');
+});
+
+function renderizarProveedores() {
+    const contenedor = document.getElementById('lista-proveedores');
+
+    const proveedores = {};
+    for (const p of productosCache) {
+        if (!p.proveedor) continue;
+        if (!proveedores[p.proveedor]) proveedores[p.proveedor] = [];
+        proveedores[p.proveedor].push(p.nombre);
+    }
+
+    const nombres = Object.keys(proveedores).sort();
+
+    if (nombres.length === 0) {
+        contenedor.innerHTML = '<p>Todavía no cargaste ningún proveedor.</p>';
+        return;
+    }
+
+    contenedor.innerHTML = nombres.map(nombre => `
+    <div class="proveedor-item">
+      <h4>${nombre}</h4>
+      <ul>
+        ${proveedores[nombre].map(prod => `<li>${prod}</li>`).join('')}
+      </ul>
+    </div>
+  `).join('');
+}
+
 async function reponerStock(id) {
     const cantidad = prompt('¿Cuántas unidades querés agregar al stock?');
     if (cantidad === null) return; // canceló
