@@ -395,10 +395,20 @@ th {
     text-transform: uppercase;
 }
 
+.ganancia-metricas {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
 .ganancia-valor {
     font-size: 1.8rem;
     font-weight: 700;
     color: #16a34a;
+}
+
+.ganancia-valor-real {
+    color: #0d9488;
 }
 
 .ganancia-desglose {

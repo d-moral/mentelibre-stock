@@ -9,10 +9,12 @@ async function crear({ nombre_cliente, direccion, contacto, items, metodo_pago, 
         // 1. Verificar stock disponible y traer nombre + precio_venta de cada producto
         const productosInfo = [];
         for (const item of items) {
+
             const { rows } = await client.query(
-                'SELECT id, nombre, precio_venta, precio_venta_mayor, stock_actual FROM productos WHERE id = $1 FOR UPDATE',
+                'SELECT id, nombre, precio_venta, precio_venta_mayor, precio_compra, precio_compra_mayor, stock_actual FROM productos WHERE id = $1 FOR UPDATE',
                 [item.producto_id]
             );
+
             const producto = rows[0];
 
             if (!producto) {
@@ -31,32 +33,44 @@ async function crear({ nombre_cliente, direccion, contacto, items, metodo_pago, 
                 ...item,
                 producto_nombre: producto.nombre,
                 precio_unitario: esMayor ? producto.precio_venta_mayor : producto.precio_venta,
+                // si es mayorista pero no tiene costo mayorista cargado, cae al costo normal
+                precio_compra_unitario: esMayor && producto.precio_compra_mayor != null
+                    ? producto.precio_compra_mayor
+                    : producto.precio_compra,
             });
+
         }
 
-        // 2. Calcular el total
+        // 2. Calcular el total y la ganancia real (venta - costo, por cada item)
         const total = productosInfo.reduce(
             (acc, item) => acc + item.cantidad * item.precio_unitario,
             0
         );
+        const ganancia = productosInfo.reduce(
+            (acc, item) => acc + item.cantidad * (item.precio_unitario - item.precio_compra_unitario),
+            0
+        );
 
         // 3. Crear la cabecera del pedido
+
         const { rows: pedidoRows } = await client.query(
-            `INSERT INTO pedidos (nombre_cliente, direccion, contacto, total, metodo_pago, destinatario)
-       VALUES ($1, $2, $3, $4, $5, $6)
+            `INSERT INTO pedidos (nombre_cliente, direccion, contacto, total, ganancia_real, metodo_pago, destinatario)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-            [nombre_cliente, direccion, contacto, total, metodo_pago, destinatario || null]
+            [nombre_cliente, direccion, contacto, total, ganancia, metodo_pago, destinatario || null]
         );
+
 
         const pedido = pedidoRows[0];
 
         // 4. Crear cada item (con snapshot de nombre y precio) y descontar stock
         for (const item of productosInfo) {
             await client.query(
-                `INSERT INTO pedido_items (pedido_id, producto_id, producto_nombre, cantidad, precio_unitario)
-         VALUES ($1, $2, $3, $4, $5)`,
-                [pedido.id, item.producto_id, item.producto_nombre, item.cantidad, item.precio_unitario]
+                `INSERT INTO pedido_items (pedido_id, producto_id, producto_nombre, cantidad, precio_unitario, precio_compra_unitario)
+                 VALUES ($1, $2, $3, $4, $5, $6)`,
+                [pedido.id, item.producto_id, item.producto_nombre, item.cantidad, item.precio_unitario, item.precio_compra_unitario]
             );
+
 
             await client.query(
                 `UPDATE productos
