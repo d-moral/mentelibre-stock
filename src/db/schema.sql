@@ -22,10 +22,10 @@ CREATE TABLE IF NOT EXISTS pedidos (
     contacto        VARCHAR(150),
     fecha           TIMESTAMP NOT NULL DEFAULT NOW(),
     estado          VARCHAR(20) NOT NULL DEFAULT 'pendiente', -- 'pendiente' | 'confirmado' | 'vendido' | 'cancelado'
-    total           NUMERIC(10,2) NOT NULL DEFAULT 0
+    total           NUMERIC(10,2) NOT NULL DEFAULT 0,
+    ganancia_real   NUMERIC(10,2) NOT NULL DEFAULT 0,
     metodo_pago     VARCHAR(20) NOT NULL DEFAULT 'efectivo', -- 'efectivo' | 'transferencia'
     destinatario    VARCHAR(50) -- 'elias' | 'ludmila', solo aplica si metodo_pago = 'transferencia'
-    );
     );
 
 CREATE TABLE IF NOT EXISTS pedido_items (
@@ -34,7 +34,8 @@ CREATE TABLE IF NOT EXISTS pedido_items (
     producto_id     INTEGER REFERENCES productos(id) ON DELETE SET NULL,
     producto_nombre VARCHAR(150) NOT NULL,
     cantidad        INTEGER NOT NULL,
-    precio_unitario NUMERIC(10,2) NOT NULL
+    precio_unitario NUMERIC(10,2) NOT NULL,
+    precio_compra_unitario   NUMERIC(10,2) NOT NULL DEFAULT 0
     );
 
 CREATE INDEX IF NOT EXISTS idx_pedido_items_pedido_id ON pedido_items(pedido_id);
