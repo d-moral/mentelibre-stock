@@ -253,6 +253,9 @@ function renderizarPedidos() {
             ? `Transf. (${p.destinatario === 'elias' ? 'E' : 'L'})`
             : 'Efectivo';
 
+        const esRealizado = p.estado === 'confirmado' || p.estado === 'vendido';
+        tr.dataset.pedidoId = p.id;
+
         tr.innerHTML = `
       <td>${esPendiente ? `<input type="checkbox" onchange="marcarComoRealizado(${p.id})">` : ''}</td>
       <td>${p.nombre_cliente}</td>
@@ -266,12 +269,54 @@ function renderizarPedidos() {
           <button class="btn-secundario" type="button">Boleta</button>
         </a>
         ${esPendiente ? `<button class="btn-peligro" onclick="cancelarPedido(${p.id})">Cancelar</button>` : ''}
+        ${esRealizado ? `<button class="btn-secundario" onclick="toggleDetallePedido(${p.id})">⋮</button>` : ''}
       </td>
     `;
         tbody.appendChild(tr);
     }
 
     actualizarGananciaDia();
+}
+
+async function toggleDetallePedido(id) {
+    const filaExistente = document.getElementById(`detalle-pedido-${id}`);
+    if (filaExistente) {
+        filaExistente.remove();
+        return;
+    }
+
+    // Solo una fila expandida a la vez
+    document.querySelectorAll('.fila-detalle-pedido').forEach(f => f.remove());
+
+    const filaPedido = document.querySelector(`tr[data-pedido-id="${id}"]`);
+    if (!filaPedido) return;
+
+    const res = await fetch(`${API}/pedidos/${id}`);
+    const pedido = await res.json();
+
+    const filasItems = pedido.items.map(item => {
+        const ganancia = (Number(item.precio_unitario) - Number(item.precio_compra_unitario)) * item.cantidad;
+        const etiqueta = item.set_id ? `${item.set_nombre} (set)` : item.producto_nombre;
+        return `<tr>
+      <td>${etiqueta}</td>
+      <td>${item.cantidad}</td>
+      <td>${formatearPrecio(ganancia)}</td>
+    </tr>`;
+    }).join('');
+
+    const filaDetalle = document.createElement('tr');
+    filaDetalle.id = `detalle-pedido-${id}`;
+    filaDetalle.className = 'fila-detalle-pedido';
+    filaDetalle.innerHTML = `
+    <td colspan="7">
+      <table class="detalle-ganancia-items">
+        <thead><tr><th>Producto</th><th>Cant.</th><th>Ganancia</th></tr></thead>
+        <tbody>${filasItems}</tbody>
+      </table>
+    </td>
+  `;
+
+    filaPedido.insertAdjacentElement('afterend', filaDetalle);
 }
 
 function actualizarGananciaDia() {
