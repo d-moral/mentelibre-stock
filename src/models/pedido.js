@@ -144,11 +144,8 @@ async function obtenerConItems(id) {
     const pedido = pedidoRows[0];
     if (!pedido) return null;
 
-    // Usamos el producto_nombre guardado en pedido_items (la "foto" al momento
-    // del pedido), NO un JOIN a productos — así la boleta se ve bien aunque
-    // el producto original ya haya sido borrado.
     const { rows: items } = await pool.query(
-        `SELECT id, producto_id, producto_nombre, cantidad, precio_unitario
+        `SELECT id, producto_id, set_id, producto_nombre, set_nombre, cantidad, precio_unitario, precio_compra_unitario
      FROM pedido_items
      WHERE pedido_id = $1`,
         [id]
