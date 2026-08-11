@@ -151,6 +151,19 @@ async function obtenerConItems(id) {
         [id]
     );
 
+    for (const item of items) {
+        if (item.set_id) {
+            const { rows: componentes } = await pool.query(
+                `SELECT p.nombre AS producto_nombre, si.cantidad, p.precio_venta
+         FROM set_items si
+         JOIN productos p ON p.id = si.producto_id
+         WHERE si.set_id = $1`,
+                [item.set_id]
+            );
+            item.componentes = componentes;
+        }
+    }
+
     return { ...pedido, items };
 }
 
