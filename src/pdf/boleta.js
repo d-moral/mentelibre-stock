@@ -74,13 +74,33 @@ function generarBoleta(pedido, res) {
     doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
     doc.moveDown(0.5);
 
-    for (const item of pedido.items) {
+    function renderLinea(nombre, cantidad, precio, indentado) {
         const y = doc.y;
-        doc.text(item.producto_nombre, colProducto, y);
-        doc.text(String(item.cantidad), colCantidad, y);
-        doc.text(`$${Number(item.precio_unitario).toFixed(2)}`, colPrecio, y);
+        const x = indentado ? colProducto + 15 : colProducto;
+        if (indentado) doc.fontSize(9).fillColor('#555555');
+        doc.text(nombre, x, y);
+        doc.text(String(cantidad), colCantidad, y);
+        doc.text(`$${Number(precio).toFixed(2)}`, colPrecio, y);
+        if (indentado) doc.fontSize(10).fillColor('#000000');
         doc.moveDown(0.5);
     }
+
+    // Combos primero (con sus componentes indentados debajo), después los
+    // productos sueltos por separado
+    const itemsCombos = pedido.items.filter(i => i.set_id);
+    const itemsProductos = pedido.items.filter(i => !i.set_id);
+
+    for (const item of itemsCombos) {
+        renderLinea(item.set_nombre, item.cantidad, item.precio_unitario, false);
+        for (const comp of item.componentes || []) {
+            renderLinea(`- ${comp.producto_nombre}`, comp.cantidad * item.cantidad, comp.precio_venta, true);
+        }
+    }
+
+    for (const item of itemsProductos) {
+        renderLinea(item.producto_nombre, item.cantidad, item.precio_unitario, false);
+    }
+    
 
     doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
     doc.moveDown();
