@@ -289,10 +289,11 @@ function renderizarPedidos() {
       <td>${iniciales}</td>
       <td class="estado-${p.estado}">${p.estado}</td>
       <td class="acciones-cell">
-      
-        <a href="${API}/pedidos/${p.id}/boleta" target="_blank">
-          <button class="btn-secundario" type="button">Boleta</button>
-        </a>
+        ${esRealizado ? `
+          <a href="${API}/pedidos/${p.id}/boleta" target="_blank">
+            <button class="btn-secundario" type="button">Boleta</button>
+          </a>
+        ` : ''}
         ${esPendiente ? `<button class="btn-peligro" onclick="cancelarPedido(${p.id})">Cancelar</button>` : ''}
         ${esRealizado ? `<button class="btn-secundario" onclick="toggleDetallePedido(${p.id})">⋮</button>` : ''}
       </td>
