@@ -48,6 +48,11 @@ async function crear(req, res) {
                     error: 'Cada item debe tener producto_id y cantidad mayor a 0',
                 });
             }
+            if (item.es_mayor !== undefined && typeof item.es_mayor !== 'boolean') {
+                return res.status(400).json({
+                    error: 'es_mayor debe ser true o false',
+                });
+            }
         }
 
         const pedido = await Pedido.crear({ nombre_cliente, direccion, contacto, items, metodo_pago, destinatario });

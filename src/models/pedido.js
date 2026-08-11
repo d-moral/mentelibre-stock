@@ -10,7 +10,7 @@ async function crear({ nombre_cliente, direccion, contacto, items, metodo_pago, 
         const productosInfo = [];
         for (const item of items) {
             const { rows } = await client.query(
-                'SELECT id, nombre, precio_venta, stock_actual FROM productos WHERE id = $1 FOR UPDATE',
+                'SELECT id, nombre, precio_venta, precio_venta_mayor, stock_actual FROM productos WHERE id = $1 FOR UPDATE',
                 [item.producto_id]
             );
             const producto = rows[0];
@@ -22,10 +22,15 @@ async function crear({ nombre_cliente, direccion, contacto, items, metodo_pago, 
                 throw new Error(`Stock insuficiente para el producto ${item.producto_id}`);
             }
 
+            const esMayor = !!item.es_mayor;
+            if (esMayor && producto.precio_venta_mayor == null) {
+                throw new Error(`El producto ${item.producto_id} no tiene precio mayorista definido`);
+            }
+
             productosInfo.push({
                 ...item,
                 producto_nombre: producto.nombre,
-                precio_unitario: producto.precio_venta,
+                precio_unitario: esMayor ? producto.precio_venta_mayor : producto.precio_venta,
             });
         }
 

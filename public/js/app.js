@@ -133,6 +133,7 @@ function abrirEditarProducto(id) {
     document.getElementById('producto-stock').value = p.stock_actual;
     document.getElementById('producto-precio-compra').value = p.precio_compra;
     document.getElementById('producto-precio-venta').value = p.precio_venta;
+    document.getElementById('producto-precio-venta-mayor').value = p.precio_venta_mayor || '';
     document.getElementById('producto-proveedor').value = p.proveedor || '';
     document.getElementById('producto-seccion').value = p.seccion || '';
     document.getElementById('modal-producto-titulo').textContent = 'Editar producto';
@@ -149,6 +150,9 @@ formProducto.addEventListener('submit', async (e) => {
         stock_actual: Number(document.getElementById('producto-stock').value),
         precio_compra: Number(document.getElementById('producto-precio-compra').value),
         precio_venta: Number(document.getElementById('producto-precio-venta').value),
+        precio_venta_mayor: document.getElementById('producto-precio-venta-mayor').value
+            ? Number(document.getElementById('producto-precio-venta-mayor').value)
+            : null,
         proveedor: document.getElementById('producto-proveedor').value || null,
         seccion: document.getElementById('producto-seccion').value || null,
     };
@@ -309,6 +313,7 @@ function agregarItemPedido() {
     div.innerHTML = `
     <select class="item-producto">${opciones}</select>
     <input type="number" class="item-cantidad" min="1" value="1">
+    <label class="checkbox-mayor"><input type="checkbox" class="item-es-mayor"> ¿Mayor?</label>
     <button type="button" class="btn-peligro" onclick="this.parentElement.remove()">×</button>
   `;
 
@@ -333,6 +338,7 @@ formPedido.addEventListener('submit', async (e) => {
     const items = Array.from(itemsContainer.querySelectorAll('.item-pedido')).map(div => ({
         producto_id: Number(div.querySelector('.item-producto').value),
         cantidad: Number(div.querySelector('.item-cantidad').value),
+        es_mayor: div.querySelector('.item-es-mayor').checked,
     }));
 
     const datos = {

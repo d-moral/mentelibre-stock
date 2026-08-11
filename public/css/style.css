@@ -204,10 +204,20 @@ th {
 }
 
 .item-pedido select,
-.item-pedido input {
+.item-pedido input[type="number"] {
     padding: 0.4rem;
     border: 1px solid #cbd5e1;
     border-radius: 6px;
+}
+
+.checkbox-mayor {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
 }
 
 .item-pedido select {
