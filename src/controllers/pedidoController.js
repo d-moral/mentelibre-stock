@@ -43,9 +43,18 @@ async function crear(req, res) {
         }
 
         for (const item of items) {
-            if (!item.producto_id || !item.cantidad || item.cantidad <= 0) {
+            const tieneProducto = !!item.producto_id;
+            const tieneSet = !!item.set_id;
+
+            if (tieneProducto === tieneSet) {
+                // deben tener EXACTAMENTE uno de los dos, no los dos ni ninguno
                 return res.status(400).json({
-                    error: 'Cada item debe tener producto_id y cantidad mayor a 0',
+                    error: 'Cada item debe tener producto_id O set_id (uno solo), y cantidad mayor a 0',
+                });
+            }
+            if (!item.cantidad || item.cantidad <= 0) {
+                return res.status(400).json({
+                    error: 'Cada item debe tener cantidad mayor a 0',
                 });
             }
             if (item.es_mayor !== undefined && typeof item.es_mayor !== 'boolean') {
@@ -54,6 +63,7 @@ async function crear(req, res) {
                 });
             }
         }
+
 
         const pedido = await Pedido.crear({ nombre_cliente, direccion, contacto, items, metodo_pago, destinatario });
         res.status(201).json(pedido);
