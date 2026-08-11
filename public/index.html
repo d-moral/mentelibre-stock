@@ -11,7 +11,7 @@
     <nav>
         <button class="tab-btn active" data-tab="stock">Stock</button>
         <button class="tab-btn" data-tab="pedidos">Pedidos</button>
-        <button class="tab-btn" data-tab="combos">Combos</button>
+        <button class="tab-btn" data-tab="combos">Sets</button>
     </nav>
 </header>
 
@@ -70,7 +70,7 @@
             <div class="ganancia-desglose">
 
                 <div class="chip-persona">
-                    <span class="chip-nombre">Elías</span>
+                    <span class="chip-nombre">Elias</span>
                     <span id="ganancia-elias-valor" class="chip-valor"></span>
                 </div>
                 <div class="chip-persona">
@@ -101,8 +101,8 @@
     <!-- PANEL: COMBOS -->
     <section id="tab-combos" class="tab-panel">
         <div class="panel-header">
-            <h2>Combos</h2>
-            <button id="btn-nuevo-set">+ Nuevo combo</button>
+            <h2>Sets</h2>
+            <button id="btn-nuevo-set">+ Armar set</button>
         </div>
 
         <div id="grilla-sets" class="grilla-productos">
@@ -136,7 +136,7 @@
 <!-- MODAL: nuevo/editar combo -->
 <div id="modal-set" class="modal hidden">
     <div class="modal-content">
-        <h3 id="modal-set-titulo">Nuevo combo</h3>
+        <h3 id="modal-set-titulo">Nuevo set</h3>
         <form id="form-set">
             <input type="hidden" id="set-id">
             <label>Nombre <input type="text" id="set-nombre" required></label>

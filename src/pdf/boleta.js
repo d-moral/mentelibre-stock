@@ -92,9 +92,7 @@ function generarBoleta(pedido, res) {
     doc.moveDown();
 
     // Método de pago
-    const metodoTexto = pedido.metodo_pago === 'transferencia'
-        ? `Transferencia (${pedido.destinatario === 'elias' ? 'Elías' : 'Ludmila'})`
-        : 'Efectivo';
+    const metodoTexto = pedido.metodo_pago === 'transferencia' ? 'Transferencia' : 'Efectivo';
     doc.fontSize(10).text(`Método de pago: ${metodoTexto}`);
     doc.moveDown(2);
 

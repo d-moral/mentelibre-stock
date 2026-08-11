@@ -337,7 +337,6 @@ document.getElementById('btn-nuevo-pedido').addEventListener('click', () => {
     itemsContainer.innerHTML = '';
     itemsComboContainer.innerHTML = '';
     document.getElementById('label-destinatario').classList.add('hidden');
-    agregarItemPedido();
     modalPedido.classList.remove('hidden');
 });
 
@@ -524,7 +523,7 @@ document.getElementById('pedido-metodo-pago').addEventListener('change', (e) => 
       <div class="acciones-tarjeta">
         <button class="btn-secundario" onclick="abrirEditarSet(${s.id})">Editar</button>
         <button class="btn-secundario" onclick="reponerStockSet(${s.id})">+ Reponer</button>
-        <button class="btn-peligro" onclick="cancelarSet(${s.id})">Cancelar</button>
+        <button class="btn-peligro" onclick="cancelarSet(${s.id})">Eliminar</button>
       </div>
     `;
                 grilla.appendChild(div);
@@ -532,7 +531,7 @@ document.getElementById('pedido-metodo-pago').addEventListener('change', (e) => 
         }
 
         async function cancelarSet(id) {
-            if (!confirm('¿Cancelar este combo? El stock sin vender vuelve a los productos que lo componen.')) return;
+            if (!confirm('¿Cancelar este set? El stock sin vender vuelve a los productos que lo componen.')) return;
 
             const res = await fetch(`${API}/sets/${id}/cancelar`, { method: 'PATCH' });
             if (!res.ok) {
@@ -545,7 +544,7 @@ document.getElementById('pedido-metodo-pago').addEventListener('change', (e) => 
             cargarProductos(); // el stock de los componentes cambió
         }
 async function reponerStockSet(id) {
-    const cantidad = prompt('¿Cuántas unidades querés agregar al stock del combo?');
+    const cantidad = prompt('¿Cuántas unidades querés agregar al stock del set?');
     if (cantidad === null) return; // canceló
 
     const numero = Number(cantidad);
@@ -579,7 +578,7 @@ async function reponerStockSet(id) {
         document.getElementById('btn-nuevo-set').addEventListener('click', () => {
             formSet.reset();
             document.getElementById('set-id').value = '';
-            document.getElementById('modal-set-titulo').textContent = 'Nuevo combo';
+            document.getElementById('modal-set-titulo').textContent = 'Nuevo set';
             document.getElementById('label-set-cantidad-armar').classList.remove('hidden');
             document.getElementById('bloque-set-items').classList.remove('hidden');
             setItemsContainer.innerHTML = '';
@@ -624,7 +623,7 @@ async function reponerStockSet(id) {
             document.getElementById('set-descripcion').value = s.descripcion || '';
             document.getElementById('set-precio-venta').value = s.precio_venta;
             document.getElementById('set-precio-venta-mayor').value = s.precio_venta_mayor || '';
-            document.getElementById('modal-set-titulo').textContent = 'Editar combo';
+            document.getElementById('modal-set-titulo').textContent = 'Editar set';
 
             // Composición y cantidad armada no se editan (ya se descontó el stock al crearlo)
             document.getElementById('label-set-cantidad-armar').classList.add('hidden');
