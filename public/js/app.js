@@ -57,8 +57,8 @@ function actualizarFiltroSecciones() {
 }
 
 function renderizarProductos() {
-    const grilla = document.getElementById('grilla-productos');
-    grilla.innerHTML = '';
+    const tbody = document.getElementById('tabla-productos');
+    tbody.innerHTML = '';
 
     const seccionElegida = document.getElementById('filtro-seccion').value;
     const productosFiltrados = seccionElegida
@@ -66,28 +66,53 @@ function renderizarProductos() {
         : productosCache;
 
     for (const p of productosFiltrados) {
-        const div = document.createElement('div');
-        div.className = 'tarjeta-producto';
+        const tr = document.createElement('tr');
+        tr.dataset.productoId = p.id;
         const disponible = p.stock_actual > 0;
         const etiqueta = disponible ? 'disponible' : 'sin stock';
         const claseEstado = disponible ? 'estado-activo' : 'estado-sin_stock';
 
-        div.innerHTML = `
-      <h3>${p.nombre}</h3>
-      ${p.seccion ? `<span class="seccion-tag">${p.seccion}</span>` : ''}
-      <p class="descripcion">${p.descripcion || 'Sin descripción'}</p>
-      <div class="detalle"><span>Stock:</span><span>${p.stock_actual}</span></div>
-      <div class="detalle"><span>Precio venta:</span><span>${formatearPrecio(p.precio_venta)}</span></div>
-      ${p.precio_venta_mayor ? `<div class="detalle"><span>Precio mayorista:</span><span>${formatearPrecio(p.precio_venta_mayor)}</span></div>` : ''}
-      <div class="detalle"><span>Disponibilidad:</span><span class="${claseEstado}">${etiqueta}</span></div>
-      <div class="acciones-tarjeta">
-         <button class="btn-secundario" onclick="abrirEditarProducto(${p.id})">Editar</button>
-         <button class="btn-secundario" onclick="reponerStock(${p.id})">+ Reponer</button>
-         <button class="btn-peligro" onclick="eliminarProducto(${p.id})">Eliminar</button>
-      </div>
+        tr.innerHTML = `
+      <td>${p.nombre}</td>
+      <td>${p.seccion || '-'}</td>
+      <td>${p.stock_actual}</td>
+      <td>${formatearPrecio(p.precio_venta)}</td>
+      <td>${p.precio_venta_mayor ? formatearPrecio(p.precio_venta_mayor) : '-'}</td>
+      <td class="${claseEstado}">${etiqueta}</td>
+      <td class="acciones-cell">
+        <button class="btn-secundario" onclick="abrirEditarProducto(${p.id})">Editar</button>
+        <button class="btn-secundario" onclick="reponerStock(${p.id})">+ Reponer</button>
+        <button class="btn-peligro" onclick="eliminarProducto(${p.id})">Eliminar</button>
+        <button class="btn-secundario" onclick="toggleDetalleProducto(${p.id})">⋮</button>
+      </td>
     `;
-        grilla.appendChild(div);
+        tbody.appendChild(tr);
     }
+}
+
+function toggleDetalleProducto(id) {
+    const filaExistente = document.getElementById(`detalle-producto-${id}`);
+    if (filaExistente) {
+        filaExistente.remove();
+        return;
+    }
+
+    document.querySelectorAll('.fila-detalle-producto').forEach(f => f.remove());
+
+    const p = productosCache.find(x => x.id === id);
+    const filaProducto = document.querySelector(`tr[data-producto-id="${id}"]`);
+    if (!p || !filaProducto) return;
+
+    const filaDetalle = document.createElement('tr');
+    filaDetalle.id = `detalle-producto-${id}`;
+    filaDetalle.className = 'fila-detalle-producto';
+    filaDetalle.innerHTML = `
+    <td colspan="7">
+      <p class="detalle-descripcion">${p.descripcion || 'Sin descripción'}</p>
+    </td>
+  `;
+
+    filaProducto.insertAdjacentElement('afterend', filaDetalle);
 }
 
 const modalProveedores = document.getElementById('modal-proveedores');
@@ -548,31 +573,69 @@ document.getElementById('pedido-metodo-pago').addEventListener('change', (e) => 
         }
 
         function renderizarSets() {
-            const grilla = document.getElementById('grilla-sets');
-            grilla.innerHTML = '';
+            const tbody = document.getElementById('tabla-sets');
+            tbody.innerHTML = '';
 
             for (const s of setsCache.filter(s => s.activo)) {
-                const div = document.createElement('div');
-                div.className = 'tarjeta-producto';
+                const tr = document.createElement('tr');
+                tr.dataset.setId = s.id;
                 const disponible = s.stock_actual > 0;
                 const etiqueta = disponible ? 'disponible' : 'sin stock';
                 const claseEstado = disponible ? 'estado-activo' : 'estado-sin_stock';
 
-                div.innerHTML = `
-      <h3>${s.nombre}</h3>
-      <p class="descripcion">${s.descripcion || 'Sin descripción'}</p>
-      <div class="detalle"><span>Stock:</span><span>${s.stock_actual}</span></div>
-      <div class="detalle"><span>Precio venta:</span><span>${formatearPrecio(s.precio_venta)}</span></div>
-      ${s.precio_venta_mayor ? `<div class="detalle"><span>Precio mayorista:</span><span>${formatearPrecio(s.precio_venta_mayor)}</span></div>` : ''}
-      <div class="detalle"><span>Disponibilidad:</span><span class="${claseEstado}">${etiqueta}</span></div>
-      <div class="acciones-tarjeta">
+                tr.innerHTML = `
+      <td>${s.nombre}</td>
+      <td>${s.stock_actual}</td>
+      <td>${formatearPrecio(s.precio_venta)}</td>
+      <td>${s.precio_venta_mayor ? formatearPrecio(s.precio_venta_mayor) : '-'}</td>
+      <td class="${claseEstado}">${etiqueta}</td>
+      <td class="acciones-cell">
         <button class="btn-secundario" onclick="abrirEditarSet(${s.id})">Editar</button>
         <button class="btn-secundario" onclick="reponerStockSet(${s.id})">+ Reponer</button>
         <button class="btn-peligro" onclick="cancelarSet(${s.id})">Eliminar</button>
-      </div>
+        <button class="btn-secundario" onclick="toggleDetalleSet(${s.id})">⋮</button>
+      </td>
     `;
-                grilla.appendChild(div);
+                tbody.appendChild(tr);
             }
+        }
+
+        async function toggleDetalleSet(id) {
+            const filaExistente = document.getElementById(`detalle-set-${id}`);
+            if (filaExistente) {
+                filaExistente.remove();
+                return;
+            }
+
+            document.querySelectorAll('.fila-detalle-set').forEach(f => f.remove());
+
+            const filaSet = document.querySelector(`tr[data-set-id="${id}"]`);
+            if (!filaSet) return;
+
+            const res = await fetch(`${API}/sets/${id}`);
+            const set = await res.json();
+
+            const filasComponentes = (set.items || []).map(item => `
+        <tr>
+          <td>${item.producto_nombre}</td>
+          <td>${item.cantidad}</td>
+        </tr>
+      `).join('');
+
+            const filaDetalle = document.createElement('tr');
+            filaDetalle.id = `detalle-set-${id}`;
+            filaDetalle.className = 'fila-detalle-set';
+            filaDetalle.innerHTML = `
+    <td colspan="6">
+      <p class="detalle-descripcion">${set.descripcion || 'Sin descripción'}</p>
+      <table class="detalle-ganancia-items">
+        <thead><tr><th>Producto</th><th>Cant.</th></tr></thead>
+        <tbody>${filasComponentes}</tbody>
+      </table>
+    </td>
+  `;
+
+            filaSet.insertAdjacentElement('afterend', filaDetalle);
         }
 
         async function cancelarSet(id) {
