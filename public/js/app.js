@@ -31,6 +31,7 @@ function fechaLocalISO(fechaISO) {
 window.addEventListener('DOMContentLoaded', () => {
     cargarProductos();
     cargarPedidos();
+    cargarSets();
 });
 
 // ---------- PRODUCTOS ----------
@@ -80,9 +81,9 @@ function renderizarProductos() {
       ${p.precio_venta_mayor ? `<div class="detalle"><span>Precio mayorista:</span><span>${formatearPrecio(p.precio_venta_mayor)}</span></div>` : ''}
       <div class="detalle"><span>Disponibilidad:</span><span class="${claseEstado}">${etiqueta}</span></div>
       <div class="acciones-tarjeta">
-        <button class="btn-secundario" onclick="abrirEditarProducto(${p.id})">Editar</button>
-        <button class="btn-secundario" onclick="reponerStock(${p.id})">+ Reponer</button>
-        <button class="btn-peligro" onclick="eliminarProducto(${p.id})">Eliminar</button>
+         <button class="btn-secundario" onclick="abrirEditarProducto(${p.id})">Editar</button>
+         <button class="btn-secundario" onclick="reponerStock(${p.id})">+ Reponer</button>
+         <button class="btn-peligro" onclick="eliminarProducto(${p.id})">Eliminar</button>
       </div>
     `;
         grilla.appendChild(div);
@@ -313,7 +314,8 @@ async function cancelarPedido(id) {
         body: JSON.stringify({ estado: 'cancelado' }),
     });
     cargarPedidos();
-    cargarProductos(); // el stock cambió, refrescamos también esta tabla
+    cargarSets();
+    cargarProductos(); // el stock cambió
 }
 
 async function marcarComoRealizado(id) {
@@ -324,15 +326,16 @@ async function marcarComoRealizado(id) {
     });
     cargarPedidos();
 }
-
 // ---------- MODAL PEDIDO ----------
 const modalPedido = document.getElementById('modal-pedido');
 const formPedido = document.getElementById('form-pedido');
 const itemsContainer = document.getElementById('pedido-items');
+const itemsComboContainer = document.getElementById('pedido-items-combos');
 
 document.getElementById('btn-nuevo-pedido').addEventListener('click', () => {
     formPedido.reset();
     itemsContainer.innerHTML = '';
+    itemsComboContainer.innerHTML = '';
     document.getElementById('label-destinatario').classList.add('hidden');
     agregarItemPedido();
     modalPedido.classList.remove('hidden');
@@ -367,6 +370,38 @@ function agregarItemPedido() {
     itemsContainer.appendChild(div);
 }
 
+document.getElementById('btn-agregar-item-combo').addEventListener('click', agregarItemCombo);
+
+function agregarItemCombo() {
+    const combosDisponibles = setsCache.filter(s => s.activo);
+
+    if (combosDisponibles.length === 0) {
+        alert('Todavía no tenés combos armados');
+        return;
+    }
+
+    const div = document.createElement('div');
+    div.className = 'item-combo';
+
+    const opciones = combosDisponibles
+        .map(s => {
+            const noDisponible = s.stock_actual <= 0;
+            return `<option value="${s.id}" ${noDisponible ? 'disabled' : ''}>
+        ${s.nombre} ${noDisponible ? '(sin stock)' : ''}
+      </option>`;
+        })
+        .join('');
+
+    div.innerHTML = `
+    <select class="item-combo-set">${opciones}</select>
+    <input type="number" class="item-combo-cantidad" min="1" value="1">
+    <label class="checkbox-mayor"><input type="checkbox" class="item-combo-es-mayor"> ¿Mayor?</label>
+    <button type="button" class="btn-peligro" onclick="this.parentElement.remove()">×</button>
+  `;
+
+    itemsComboContainer.appendChild(div);
+}
+
 formPedido.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -382,11 +417,24 @@ formPedido.addEventListener('submit', async (e) => {
         return;
     }
 
-    const items = Array.from(itemsContainer.querySelectorAll('.item-pedido')).map(div => ({
+    const itemsProductos = Array.from(itemsContainer.querySelectorAll('.item-pedido')).map(div => ({
         producto_id: Number(div.querySelector('.item-producto').value),
         cantidad: Number(div.querySelector('.item-cantidad').value),
         es_mayor: div.querySelector('.item-es-mayor').checked,
     }));
+
+    const itemsCombos = Array.from(itemsComboContainer.querySelectorAll('.item-combo')).map(div => ({
+        set_id: Number(div.querySelector('.item-combo-set').value),
+        cantidad: Number(div.querySelector('.item-combo-cantidad').value),
+        es_mayor: div.querySelector('.item-combo-es-mayor').checked,
+    }));
+
+    const items = [...itemsProductos, ...itemsCombos];
+
+    if (items.length === 0) {
+        alert('Agregá al menos un producto o un combo');
+        return;
+    }
 
     const datos = {
         nombre_cliente: document.getElementById('pedido-cliente').value,
@@ -411,6 +459,7 @@ formPedido.addEventListener('submit', async (e) => {
 
     modalPedido.classList.add('hidden');
     cargarPedidos();
+    cargarSets();
     cargarProductos(); // el stock cambió
 });
 
@@ -444,3 +493,202 @@ document.getElementById('pedido-metodo-pago').addEventListener('change', (e) => 
         document.getElementById('pedido-destinatario').value = '';
     }
 });
+
+// ---------- COMBOS ----------
+        let setsCache = [];
+
+        async function cargarSets() {
+            const res = await fetch(`${API}/sets`);
+            setsCache = await res.json();
+            renderizarSets();
+        }
+
+        function renderizarSets() {
+            const grilla = document.getElementById('grilla-sets');
+            grilla.innerHTML = '';
+
+            for (const s of setsCache.filter(s => s.activo)) {
+                const div = document.createElement('div');
+                div.className = 'tarjeta-producto';
+                const disponible = s.stock_actual > 0;
+                const etiqueta = disponible ? 'disponible' : 'sin stock';
+                const claseEstado = disponible ? 'estado-activo' : 'estado-sin_stock';
+
+                div.innerHTML = `
+      <h3>${s.nombre}</h3>
+      <p class="descripcion">${s.descripcion || 'Sin descripción'}</p>
+      <div class="detalle"><span>Stock:</span><span>${s.stock_actual}</span></div>
+      <div class="detalle"><span>Precio venta:</span><span>${formatearPrecio(s.precio_venta)}</span></div>
+      ${s.precio_venta_mayor ? `<div class="detalle"><span>Precio mayorista:</span><span>${formatearPrecio(s.precio_venta_mayor)}</span></div>` : ''}
+      <div class="detalle"><span>Disponibilidad:</span><span class="${claseEstado}">${etiqueta}</span></div>
+      <div class="acciones-tarjeta">
+        <button class="btn-secundario" onclick="abrirEditarSet(${s.id})">Editar</button>
+        <button class="btn-secundario" onclick="reponerStockSet(${s.id})">+ Reponer</button>
+        <button class="btn-peligro" onclick="cancelarSet(${s.id})">Cancelar</button>
+      </div>
+    `;
+                grilla.appendChild(div);
+            }
+        }
+
+        async function cancelarSet(id) {
+            if (!confirm('¿Cancelar este combo? El stock sin vender vuelve a los productos que lo componen.')) return;
+
+            const res = await fetch(`${API}/sets/${id}/cancelar`, { method: 'PATCH' });
+            if (!res.ok) {
+                const error = await res.json();
+                alert(`Error: ${error.error}`);
+                return;
+            }
+
+            cargarSets();
+            cargarProductos(); // el stock de los componentes cambió
+        }
+async function reponerStockSet(id) {
+    const cantidad = prompt('¿Cuántas unidades querés agregar al stock del combo?');
+    if (cantidad === null) return; // canceló
+
+    const numero = Number(cantidad);
+    if (!numero || numero <= 0) {
+        alert('Ingresá un número mayor a 0');
+        return;
+    }
+
+    const res = await fetch(`${API}/sets/${id}/stock`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cantidad: numero }),
+    });
+
+    if (!res.ok) {
+        const error = await res.json();
+        alert(`Error: ${error.error}`);
+        return;
+    }
+
+    cargarSets();
+    cargarProductos(); // el stock de los componentes cambió
+}
+
+
+// ---------- MODAL COMBO ----------
+        const modalSet = document.getElementById('modal-set');
+        const formSet = document.getElementById('form-set');
+        const setItemsContainer = document.getElementById('set-items');
+
+        document.getElementById('btn-nuevo-set').addEventListener('click', () => {
+            formSet.reset();
+            document.getElementById('set-id').value = '';
+            document.getElementById('modal-set-titulo').textContent = 'Nuevo combo';
+            document.getElementById('label-set-cantidad-armar').classList.remove('hidden');
+            document.getElementById('bloque-set-items').classList.remove('hidden');
+            setItemsContainer.innerHTML = '';
+            agregarSetItem();
+            modalSet.classList.remove('hidden');
+        });
+
+        document.getElementById('btn-cancelar-set').addEventListener('click', () => {
+            modalSet.classList.add('hidden');
+        });
+
+        document.getElementById('btn-agregar-set-item').addEventListener('click', agregarSetItem);
+
+        function agregarSetItem() {
+            const div = document.createElement('div');
+            div.className = 'item-pedido';
+
+            const opciones = productosCache
+                .map(p => {
+                    const noDisponible = p.stock_actual <= 0;
+                    return `<option value="${p.id}" ${noDisponible ? 'disabled' : ''}>
+        ${p.nombre} ${noDisponible ? '(sin stock)' : ''}
+      </option>`;
+                })
+                .join('');
+
+            div.innerHTML = `
+    <select class="set-item-producto">${opciones}</select>
+    <input type="number" class="set-item-cantidad" min="1" value="1">
+    <button type="button" class="btn-peligro" onclick="this.parentElement.remove()">×</button>
+  `;
+
+            setItemsContainer.appendChild(div);
+        }
+
+        function abrirEditarSet(id) {
+            const s = setsCache.find(x => x.id === id);
+            if (!s) return;
+
+            document.getElementById('set-id').value = s.id;
+            document.getElementById('set-nombre').value = s.nombre;
+            document.getElementById('set-descripcion').value = s.descripcion || '';
+            document.getElementById('set-precio-venta').value = s.precio_venta;
+            document.getElementById('set-precio-venta-mayor').value = s.precio_venta_mayor || '';
+            document.getElementById('modal-set-titulo').textContent = 'Editar combo';
+
+            // Composición y cantidad armada no se editan (ya se descontó el stock al crearlo)
+            document.getElementById('label-set-cantidad-armar').classList.add('hidden');
+            document.getElementById('bloque-set-items').classList.add('hidden');
+
+            modalSet.classList.remove('hidden');
+        }
+
+        formSet.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('set-id').value;
+            const precio_venta_mayor = document.getElementById('set-precio-venta-mayor').value
+                ? Number(document.getElementById('set-precio-venta-mayor').value)
+                : null;
+
+            if (id) {
+                // Editar: solo metadata
+                const datos = {
+                    nombre: document.getElementById('set-nombre').value,
+                    descripcion: document.getElementById('set-descripcion').value || null,
+                    precio_venta: Number(document.getElementById('set-precio-venta').value),
+                    precio_venta_mayor,
+                };
+
+                const res = await fetch(`${API}/sets/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(datos),
+                });
+                if (!res.ok) {
+                    const error = await res.json();
+                    alert(`Error: ${error.error}`);
+                    return;
+                }
+            } else {
+                // Crear: metadata + composición + cuántos armar
+                const items = Array.from(setItemsContainer.querySelectorAll('.item-pedido')).map(div => ({
+                    producto_id: Number(div.querySelector('.set-item-producto').value),
+                    cantidad: Number(div.querySelector('.set-item-cantidad').value),
+                }));
+
+                const datos = {
+                    nombre: document.getElementById('set-nombre').value,
+                    descripcion: document.getElementById('set-descripcion').value || null,
+                    precio_venta: Number(document.getElementById('set-precio-venta').value),
+                    precio_venta_mayor,
+                    cantidad_armar: Number(document.getElementById('set-cantidad-armar').value),
+                    items,
+                };
+
+                const res = await fetch(`${API}/sets`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(datos),
+                });
+                if (!res.ok) {
+                    const error = await res.json();
+                    alert(`Error: ${error.error}`);
+                    return;
+                }
+            }
+
+            modalSet.classList.add('hidden');
+            cargarSets();
+            cargarProductos(); // el stock de los componentes cambió
+        });
