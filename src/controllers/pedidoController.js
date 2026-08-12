@@ -26,9 +26,11 @@ async function obtenerUno(req, res) {
 
 async function crear(req, res) {
     try {
+        const { dni, nombre_cliente, direccion, contacto, items, metodo_pago, destinatario } = req.body;
 
-        const { nombre_cliente, direccion, contacto, items, metodo_pago, destinatario } = req.body;
-
+        if (!dni) {
+            return res.status(400).json({ error: 'dni es obligatorio' });
+        }
         if (!nombre_cliente) {
             return res.status(400).json({ error: 'nombre_cliente es obligatorio' });
         }
@@ -47,7 +49,6 @@ async function crear(req, res) {
             const tieneSet = !!item.set_id;
 
             if (tieneProducto === tieneSet) {
-                // deben tener EXACTAMENTE uno de los dos, no los dos ni ninguno
                 return res.status(400).json({
                     error: 'Cada item debe tener producto_id O set_id (uno solo), y cantidad mayor a 0',
                 });
@@ -64,8 +65,7 @@ async function crear(req, res) {
             }
         }
 
-
-        const pedido = await Pedido.crear({ nombre_cliente, direccion, contacto, items, metodo_pago, destinatario });
+        const pedido = await Pedido.crear({ dni, nombre_cliente, direccion, contacto, items, metodo_pago, destinatario });
         res.status(201).json(pedido);
     } catch (err) {
         console.error(err);
@@ -82,7 +82,6 @@ async function cambiarEstado(req, res) {
             return res.status(400).json({ error: 'Estado inválido' });
         }
 
-        // Cancelar tiene lógica especial (devuelve stock), se maneja aparte
         if (estado === 'cancelado') {
             const pedido = await Pedido.cancelar(req.params.id);
             return res.json(pedido);
