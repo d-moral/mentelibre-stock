@@ -3,7 +3,7 @@ const PDFDocument = require('pdfkit');
 const path = require('path');
 
 const NEGOCIO = {
-    nombre: 'MENTELIBRE',
+    nombre: 'MAYORISTA M.L',
     contacto: '2224511201',
     logo: path.join(__dirname, 'assets', 'logo.png'),
 };
@@ -55,6 +55,7 @@ function generarBoleta(pedido, res) {
     doc.text(`Cliente: ${pedido.nombre_cliente}`);
     if (pedido.direccion) doc.text(`Dirección: ${pedido.direccion}`);
     if (pedido.contacto) doc.text(`Contacto: ${pedido.contacto}`);
+    doc.text(`Estado: ${pedido.estado}`);
     doc.moveDown();
 
     // Tabla de productos
@@ -62,25 +63,36 @@ function generarBoleta(pedido, res) {
     doc.moveDown(0.5);
 
     const colProducto = 50;
-    const colCantidad = 320;
-    const colPrecio = 420;
+    const colTipo = 230;
+    const colCantidad = 300;
+    const colPrecioUnit = 360;
+    const colSubtotal = 460;
 
     doc.font('Helvetica-Bold');
     doc.text('Producto', colProducto, doc.y, { continued: false });
+    doc.text('Tipo', colTipo, doc.y - doc.currentLineHeight());
     doc.text('Cant.', colCantidad, doc.y - doc.currentLineHeight());
-    doc.text('Precio', colPrecio, doc.y - doc.currentLineHeight());
+    doc.text('Precio unit.', colPrecioUnit, doc.y - doc.currentLineHeight());
+    doc.text('Subtotal', colSubtotal, doc.y - doc.currentLineHeight());
     doc.font('Helvetica');
     doc.moveDown(0.5);
     doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
     doc.moveDown(0.5);
 
-    function renderLinea(nombre, cantidad, precio, indentado) {
+    function renderLinea(nombre, tipo, cantidad, precioUnit, indentado, mostrarSubtotal) {
         const y = doc.y;
         const x = indentado ? colProducto + 15 : colProducto;
         if (indentado) doc.fontSize(9).fillColor('#555555');
         doc.text(nombre, x, y);
+        if (tipo) {
+            const tipoTexto = tipo === 'mayorista' ? 'Mayorista' : 'Minorista';
+            doc.text(tipoTexto, colTipo, y);
+        }
         doc.text(String(cantidad), colCantidad, y);
-        doc.text(`$${Number(precio).toFixed(2)}`, colPrecio, y);
+        doc.text(`$${Number(precioUnit).toFixed(2)}`, colPrecioUnit, y);
+        if (mostrarSubtotal) {
+            doc.text(`$${(Number(precioUnit) * Number(cantidad)).toFixed(2)}`, colSubtotal, y);
+        }
         if (indentado) doc.fontSize(10).fillColor('#000000');
         doc.moveDown(0.5);
     }
@@ -91,16 +103,16 @@ function generarBoleta(pedido, res) {
     const itemsProductos = pedido.items.filter(i => !i.set_id);
 
     for (const item of itemsCombos) {
-        renderLinea(item.set_nombre, item.cantidad, item.precio_unitario, false);
+        renderLinea(item.set_nombre, item.tipo, item.cantidad, item.precio_unitario, false, true);
         for (const comp of item.componentes || []) {
-            renderLinea(`- ${comp.producto_nombre}`, comp.cantidad * item.cantidad, comp.precio_venta, true);
+            renderLinea(`- ${comp.producto_nombre}`, null, comp.cantidad * item.cantidad, comp.precio_venta, true, false);
         }
     }
 
     for (const item of itemsProductos) {
-        renderLinea(item.producto_nombre, item.cantidad, item.precio_unitario, false);
+        renderLinea(item.producto_nombre, item.tipo, item.cantidad, item.precio_unitario, false, true);
     }
-    
+
 
     doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
     doc.moveDown();
