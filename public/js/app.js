@@ -7,6 +7,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+
+        if (btn.dataset.tab === 'clientes') {
+            cargarClientes();
+        }
     });
 });
 
@@ -27,11 +31,9 @@ function fechaLocalISO(fechaISO) {
     return `${year}-${month}-${day}`;
 }
 
-// ---------- PAGINACIÓN (reutilizable en Stock, Pedidos y Sets) ----------
+// ---------- PAGINACIÓN ----------
 const TAM_PAGINA = 10;
 
-// Recorta un array a la página pedida, ajustando la página si quedó
-// fuera de rango (por ejemplo, si se eliminó el último item de la última página)
 function paginar(items, paginaActual) {
     const totalPaginas = Math.max(1, Math.ceil(items.length / TAM_PAGINA));
     const paginaValida = Math.min(Math.max(1, paginaActual), totalPaginas);
@@ -62,11 +64,13 @@ window.addEventListener('DOMContentLoaded', () => {
     cargarProductos();
     cargarPedidos();
     cargarSets();
+    cargarClientes();
 });
 
 // ---------- PRODUCTOS ----------
 let productosCache = [];
 let paginaProductos = 1;
+
 document.getElementById('filtro-seccion').addEventListener('change', () => {
     paginaProductos = 1;
     renderizarProductos();
@@ -87,7 +91,7 @@ function actualizarFiltroSecciones() {
     select.innerHTML = '<option value="">Todas</option>' +
         secciones.map(s => `<option value="${s}">${s}</option>`).join('');
 
-    select.value = seccionActual; // mantiene la selección al recargar
+    select.value = seccionActual;
 }
 
 function renderizarProductos() {
@@ -199,7 +203,7 @@ function renderizarProveedores() {
 
 async function reponerStock(id) {
     const cantidad = prompt('¿Cuántas unidades querés agregar al stock?');
-    if (cantidad === null) return; // canceló
+    if (cantidad === null) return;
 
     const numero = Number(cantidad);
     if (!numero || numero <= 0) {
@@ -258,16 +262,16 @@ formProducto.addEventListener('submit', async (e) => {
 
     const id = document.getElementById('producto-id').value;
     const datos = {
-        nombre: document.getElementById('producto-nombre').value,
-        descripcion: document.getElementById('producto-descripcion').value || null,
+        nombre: document.getElementById('producto-nombre').value.trim(),
+        descripcion: document.getElementById('producto-descripcion').value.trim() || null,
         stock_actual: Number(document.getElementById('producto-stock').value),
         precio_compra: Number(document.getElementById('producto-precio-compra').value),
         precio_venta: Number(document.getElementById('producto-precio-venta').value),
         precio_venta_mayor: document.getElementById('producto-precio-venta-mayor').value
             ? Number(document.getElementById('producto-precio-venta-mayor').value)
             : null,
-        proveedor: document.getElementById('producto-proveedor').value || null,
-        seccion: document.getElementById('producto-seccion').value || null,
+        proveedor: document.getElementById('producto-proveedor').value.trim() || null,
+        seccion: document.getElementById('producto-seccion').value.trim() || null,
     };
 
     if (id) {
@@ -293,6 +297,7 @@ let pedidosCache = [];
 let subEstadoPedidosActivo = 'pendiente';
 let fechaFiltroActiva = '';
 let paginaPedidos = 1;
+
 async function cargarPedidos() {
     const res = await fetch(`${API}/pedidos`);
     pedidosCache = await res.json();
@@ -364,7 +369,6 @@ async function toggleDetallePedido(id) {
         return;
     }
 
-    // Solo una fila expandida a la vez
     document.querySelectorAll('.fila-detalle-pedido').forEach(f => f.remove());
 
     const filaPedido = document.querySelector(`tr[data-pedido-id="${id}"]`);
@@ -378,8 +382,6 @@ async function toggleDetallePedido(id) {
         const etiqueta = item.set_id ? `${item.set_nombre} (set)` : item.producto_nombre;
 
         if (esCancelado) {
-            // En un pedido cancelado no hay ganancia real (la venta no se concretó),
-            // solo interesa qué y cuánto se canceló.
             return `<tr>
         <td>${etiqueta}</td>
         <td>${item.cantidad}</td>
@@ -454,7 +456,7 @@ async function cancelarPedido(id) {
     });
     cargarPedidos();
     cargarSets();
-    cargarProductos(); // el stock cambió
+    cargarProductos();
 }
 
 async function marcarComoRealizado(id) {
@@ -465,6 +467,7 @@ async function marcarComoRealizado(id) {
     });
     cargarPedidos();
 }
+
 // ---------- MODAL PEDIDO ----------
 const modalPedido = document.getElementById('modal-pedido');
 const formPedido = document.getElementById('form-pedido');
@@ -575,9 +578,10 @@ formPedido.addEventListener('submit', async (e) => {
     }
 
     const datos = {
-        nombre_cliente: document.getElementById('pedido-cliente').value,
-        direccion: document.getElementById('pedido-direccion').value || null,
-        contacto: document.getElementById('pedido-contacto').value || null,
+        dni: document.getElementById('pedido-dni').value.trim(),
+        nombre_cliente: document.getElementById('pedido-cliente').value.trim(),
+        direccion: document.getElementById('pedido-direccion').value.trim() || null,
+        contacto: document.getElementById('pedido-contacto').value.trim() || null,
         metodo_pago,
         destinatario: destinatario || null,
         items,
@@ -598,7 +602,7 @@ formPedido.addEventListener('submit', async (e) => {
     modalPedido.classList.add('hidden');
     cargarPedidos();
     cargarSets();
-    cargarProductos(); // el stock cambió
+    cargarProductos();
 });
 
 document.querySelectorAll('.subtab-btn').forEach(btn => {
@@ -610,7 +614,6 @@ document.querySelectorAll('.subtab-btn').forEach(btn => {
         renderizarPedidos();
     });
 });
-
 
 document.getElementById('filtro-fecha').addEventListener('change', (e) => {
     fechaFiltroActiva = e.target.value;
@@ -636,31 +639,31 @@ document.getElementById('pedido-metodo-pago').addEventListener('change', (e) => 
 });
 
 // ---------- COMBOS ----------
-        let setsCache = [];
-        let paginaSets = 1;
+let setsCache = [];
+let paginaSets = 1;
 
-        async function cargarSets() {
-            const res = await fetch(`${API}/sets`);
-            setsCache = await res.json();
-            renderizarSets();
-        }
+async function cargarSets() {
+    const res = await fetch(`${API}/sets`);
+    setsCache = await res.json();
+    renderizarSets();
+}
 
-        function renderizarSets() {
-            const tbody = document.getElementById('tabla-sets');
-            tbody.innerHTML = '';
+function renderizarSets() {
+    const tbody = document.getElementById('tabla-sets');
+    tbody.innerHTML = '';
 
-            const setsActivos = setsCache.filter(s => s.activo);
-            const { pagina, totalPaginas, itemsPagina } = paginar(setsActivos, paginaSets);
-            paginaSets = pagina;
+    const setsActivos = setsCache.filter(s => s.activo);
+    const { pagina, totalPaginas, itemsPagina } = paginar(setsActivos, paginaSets);
+    paginaSets = pagina;
 
-            for (const s of itemsPagina) {
-                const tr = document.createElement('tr');
-                tr.dataset.setId = s.id;
-                const disponible = s.stock_actual > 0;
-                const etiqueta = disponible ? 'disponible' : 'sin stock';
-                const claseEstado = disponible ? 'estado-activo' : 'estado-sin_stock';
+    for (const s of itemsPagina) {
+        const tr = document.createElement('tr');
+        tr.dataset.setId = s.id;
+        const disponible = s.stock_actual > 0;
+        const etiqueta = disponible ? 'disponible' : 'sin stock';
+        const claseEstado = disponible ? 'estado-activo' : 'estado-sin_stock';
 
-                tr.innerHTML = `
+        tr.innerHTML = `
       <td>${s.nombre}</td>
       <td>${s.stock_actual}</td>
       <td>${formatearPrecio(s.precio_venta)}</td>
@@ -673,43 +676,43 @@ document.getElementById('pedido-metodo-pago').addEventListener('change', (e) => 
         <button class="btn-secundario" onclick="toggleDetalleSet(${s.id})">⋮</button>
       </td>
     `;
-                tbody.appendChild(tr);
-            }
+        tbody.appendChild(tr);
+    }
 
-            renderizarControlesPaginacion('paginacion-sets', pagina, totalPaginas, 'cambiarPaginaSets');
-        }
+    renderizarControlesPaginacion('paginacion-sets', pagina, totalPaginas, 'cambiarPaginaSets');
+}
 
-        function cambiarPaginaSets(nuevaPagina) {
-            paginaSets = nuevaPagina;
-            renderizarSets();
-        }
+function cambiarPaginaSets(nuevaPagina) {
+    paginaSets = nuevaPagina;
+    renderizarSets();
+}
 
-        async function toggleDetalleSet(id) {
-            const filaExistente = document.getElementById(`detalle-set-${id}`);
-            if (filaExistente) {
-                filaExistente.remove();
-                return;
-            }
+async function toggleDetalleSet(id) {
+    const filaExistente = document.getElementById(`detalle-set-${id}`);
+    if (filaExistente) {
+        filaExistente.remove();
+        return;
+    }
 
-            document.querySelectorAll('.fila-detalle-set').forEach(f => f.remove());
+    document.querySelectorAll('.fila-detalle-set').forEach(f => f.remove());
 
-            const filaSet = document.querySelector(`tr[data-set-id="${id}"]`);
-            if (!filaSet) return;
+    const filaSet = document.querySelector(`tr[data-set-id="${id}"]`);
+    if (!filaSet) return;
 
-            const res = await fetch(`${API}/sets/${id}`);
-            const set = await res.json();
+    const res = await fetch(`${API}/sets/${id}`);
+    const set = await res.json();
 
-            const filasComponentes = (set.items || []).map(item => `
+    const filasComponentes = (set.items || []).map(item => `
         <tr>
           <td>${item.producto_nombre}</td>
           <td>${item.cantidad}</td>
         </tr>
       `).join('');
 
-            const filaDetalle = document.createElement('tr');
-            filaDetalle.id = `detalle-set-${id}`;
-            filaDetalle.className = 'fila-detalle-set';
-            filaDetalle.innerHTML = `
+    const filaDetalle = document.createElement('tr');
+    filaDetalle.id = `detalle-set-${id}`;
+    filaDetalle.className = 'fila-detalle-set';
+    filaDetalle.innerHTML = `
     <td colspan="6">
       <p class="detalle-descripcion">${set.descripcion || 'Sin descripción'}</p>
       <table class="detalle-ganancia-items">
@@ -719,25 +722,26 @@ document.getElementById('pedido-metodo-pago').addEventListener('change', (e) => 
     </td>
   `;
 
-            filaSet.insertAdjacentElement('afterend', filaDetalle);
-        }
+    filaSet.insertAdjacentElement('afterend', filaDetalle);
+}
 
-        async function cancelarSet(id) {
-            if (!confirm('¿Cancelar este set? El stock sin vender vuelve a los productos que lo componen.')) return;
+async function cancelarSet(id) {
+    if (!confirm('¿Cancelar este set? El stock sin vender vuelve a los productos que lo componen.')) return;
 
-            const res = await fetch(`${API}/sets/${id}/cancelar`, { method: 'PATCH' });
-            if (!res.ok) {
-                const error = await res.json();
-                alert(`Error: ${error.error}`);
-                return;
-            }
+    const res = await fetch(`${API}/sets/${id}/cancelar`, { method: 'PATCH' });
+    if (!res.ok) {
+        const error = await res.json();
+        alert(`Error: ${error.error}`);
+        return;
+    }
 
-            cargarSets();
-            cargarProductos(); // el stock de los componentes cambió
-        }
+    cargarSets();
+    cargarProductos();
+}
+
 async function reponerStockSet(id) {
     const cantidad = prompt('¿Cuántas unidades querés agregar al stock del set?');
-    if (cantidad === null) return; // canceló
+    if (cantidad === null) return;
 
     const numero = Number(cantidad);
     if (!numero || numero <= 0) {
@@ -758,128 +762,226 @@ async function reponerStockSet(id) {
     }
 
     cargarSets();
-    cargarProductos(); // el stock de los componentes cambió
+    cargarProductos();
 }
 
-
 // ---------- MODAL COMBO ----------
-        const modalSet = document.getElementById('modal-set');
-        const formSet = document.getElementById('form-set');
-        const setItemsContainer = document.getElementById('set-items');
+const modalSet = document.getElementById('modal-set');
+const formSet = document.getElementById('form-set');
+const setItemsContainer = document.getElementById('set-items');
 
-        document.getElementById('btn-nuevo-set').addEventListener('click', () => {
-            formSet.reset();
-            document.getElementById('set-id').value = '';
-            document.getElementById('modal-set-titulo').textContent = 'Nuevo set';
-            document.getElementById('label-set-cantidad-armar').classList.remove('hidden');
-            document.getElementById('bloque-set-items').classList.remove('hidden');
-            setItemsContainer.innerHTML = '';
-            agregarSetItem();
-            modalSet.classList.remove('hidden');
-        });
+document.getElementById('btn-nuevo-set').addEventListener('click', () => {
+    formSet.reset();
+    document.getElementById('set-id').value = '';
+    document.getElementById('modal-set-titulo').textContent = 'Nuevo set';
+    document.getElementById('label-set-cantidad-armar').classList.remove('hidden');
+    document.getElementById('bloque-set-items').classList.remove('hidden');
+    setItemsContainer.innerHTML = '';
+    agregarSetItem();
+    modalSet.classList.remove('hidden');
+});
 
-        document.getElementById('btn-cancelar-set').addEventListener('click', () => {
-            modalSet.classList.add('hidden');
-        });
+document.getElementById('btn-cancelar-set').addEventListener('click', () => {
+    modalSet.classList.add('hidden');
+});
 
-        document.getElementById('btn-agregar-set-item').addEventListener('click', agregarSetItem);
+document.getElementById('btn-agregar-set-item').addEventListener('click', agregarSetItem);
 
-        function agregarSetItem() {
-            const div = document.createElement('div');
-            div.className = 'item-pedido';
+function agregarSetItem() {
+    const div = document.createElement('div');
+    div.className = 'item-pedido';
 
-            const opciones = productosCache
-                .map(p => {
-                    const noDisponible = p.stock_actual <= 0;
-                    return `<option value="${p.id}" ${noDisponible ? 'disabled' : ''}>
+    const opciones = productosCache
+        .map(p => {
+            const noDisponible = p.stock_actual <= 0;
+            return `<option value="${p.id}" ${noDisponible ? 'disabled' : ''}>
         ${p.nombre} ${noDisponible ? '(sin stock)' : ''}
       </option>`;
-                })
-                .join('');
+        })
+        .join('');
 
-            div.innerHTML = `
+    div.innerHTML = `
     <select class="set-item-producto">${opciones}</select>
     <input type="number" class="set-item-cantidad" min="1" value="1">
     <button type="button" class="btn-peligro" onclick="this.parentElement.remove()">×</button>
   `;
 
-            setItemsContainer.appendChild(div);
-        }
+    setItemsContainer.appendChild(div);
+}
 
-        function abrirEditarSet(id) {
-            const s = setsCache.find(x => x.id === id);
-            if (!s) return;
+function abrirEditarSet(id) {
+    const s = setsCache.find(x => x.id === id);
+    if (!s) return;
 
-            document.getElementById('set-id').value = s.id;
-            document.getElementById('set-nombre').value = s.nombre;
-            document.getElementById('set-descripcion').value = s.descripcion || '';
-            document.getElementById('set-precio-venta').value = s.precio_venta;
-            document.getElementById('set-precio-venta-mayor').value = s.precio_venta_mayor || '';
-            document.getElementById('modal-set-titulo').textContent = 'Editar set';
+    document.getElementById('set-id').value = s.id;
+    document.getElementById('set-nombre').value = s.nombre;
+    document.getElementById('set-descripcion').value = s.descripcion || '';
+    document.getElementById('set-precio-venta').value = s.precio_venta;
+    document.getElementById('set-precio-venta-mayor').value = s.precio_venta_mayor || '';
+    document.getElementById('modal-set-titulo').textContent = 'Editar set';
 
-            // Composición y cantidad armada no se editan (ya se descontó el stock al crearlo)
-            document.getElementById('label-set-cantidad-armar').classList.add('hidden');
-            document.getElementById('bloque-set-items').classList.add('hidden');
+    document.getElementById('label-set-cantidad-armar').classList.add('hidden');
+    document.getElementById('bloque-set-items').classList.add('hidden');
 
-            modalSet.classList.remove('hidden');
-        }
+    modalSet.classList.remove('hidden');
+}
 
-        formSet.addEventListener('submit', async (e) => {
-            e.preventDefault();
+formSet.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-            const id = document.getElementById('set-id').value;
-            const precio_venta_mayor = document.getElementById('set-precio-venta-mayor').value
-                ? Number(document.getElementById('set-precio-venta-mayor').value)
-                : null;
+    const id = document.getElementById('set-id').value;
+    const precio_venta_mayor = document.getElementById('set-precio-venta-mayor').value
+        ? Number(document.getElementById('set-precio-venta-mayor').value)
+        : null;
 
-            if (id) {
-                // Editar: solo metadata
-                const datos = {
-                    nombre: document.getElementById('set-nombre').value,
-                    descripcion: document.getElementById('set-descripcion').value || null,
-                    precio_venta: Number(document.getElementById('set-precio-venta').value),
-                    precio_venta_mayor,
-                };
+    if (id) {
+        const datos = {
+            nombre: document.getElementById('set-nombre').value.trim(),
+            descripcion: document.getElementById('set-descripcion').value.trim() || null,
+            precio_venta: Number(document.getElementById('set-precio-venta').value),
+            precio_venta_mayor,
+        };
 
-                const res = await fetch(`${API}/sets/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(datos),
-                });
-                if (!res.ok) {
-                    const error = await res.json();
-                    alert(`Error: ${error.error}`);
-                    return;
-                }
-            } else {
-                // Crear: metadata + composición + cuántos armar
-                const items = Array.from(setItemsContainer.querySelectorAll('.item-pedido')).map(div => ({
-                    producto_id: Number(div.querySelector('.set-item-producto').value),
-                    cantidad: Number(div.querySelector('.set-item-cantidad').value),
-                }));
-
-                const datos = {
-                    nombre: document.getElementById('set-nombre').value,
-                    descripcion: document.getElementById('set-descripcion').value || null,
-                    precio_venta: Number(document.getElementById('set-precio-venta').value),
-                    precio_venta_mayor,
-                    cantidad_armar: Number(document.getElementById('set-cantidad-armar').value),
-                    items,
-                };
-
-                const res = await fetch(`${API}/sets`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(datos),
-                });
-                if (!res.ok) {
-                    const error = await res.json();
-                    alert(`Error: ${error.error}`);
-                    return;
-                }
-            }
-
-            modalSet.classList.add('hidden');
-            cargarSets();
-            cargarProductos(); // el stock de los componentes cambió
+        const res = await fetch(`${API}/sets/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos),
         });
+
+        if (!res.ok) {
+            const error = await res.json();
+            alert(`Error: ${error.error}`);
+            return;
+        }
+    } else {
+        const items = Array.from(setItemsContainer.querySelectorAll('.item-pedido')).map(div => ({
+            producto_id: Number(div.querySelector('.set-item-producto').value),
+            cantidad: Number(div.querySelector('.set-item-cantidad').value),
+        }));
+
+        const datos = {
+            nombre: document.getElementById('set-nombre').value.trim(),
+            descripcion: document.getElementById('set-descripcion').value.trim() || null,
+            precio_venta: Number(document.getElementById('set-precio-venta').value),
+            precio_venta_mayor,
+            cantidad_armar: Number(document.getElementById('set-cantidad-armar').value),
+            items,
+        };
+
+        const res = await fetch(`${API}/sets`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos),
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            alert(`Error: ${error.error}`);
+            return;
+        }
+    }
+
+    modalSet.classList.add('hidden');
+    cargarSets();
+    cargarProductos();
+});
+
+// ---------- CLIENTES (AGENDA) ----------
+let paginaClientes = 1;
+let tipoClienteFiltro = '';
+
+async function cargarClientes() {
+    const inputBusqueda = document.getElementById('filtro-cliente-busqueda');
+    const busqueda = inputBusqueda ? inputBusqueda.value.trim() : '';
+
+    try {
+        const res = await fetch(`${API}/clientes?pagina=${paginaClientes}&limite=10&busqueda=${encodeURIComponent(busqueda)}&tipo=${tipoClienteFiltro}`);
+        if (!res.ok) return;
+
+        const { datos, paginacion } = await res.json();
+        renderizarClientes(datos, paginacion);
+    } catch (err) {
+        console.error('Error al cargar clientes:', err);
+    }
+}
+
+function renderizarClientes(clientes, paginacion) {
+    const tbody = document.getElementById('tabla-clientes');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    for (const c of clientes) {
+        const tr = document.createElement('tr');
+        const pedidosTexto = c.total_pedidos === 1 ? '1 pedido' : `${c.total_pedidos || 0} pedidos`;
+
+        tr.innerHTML = `
+            <td>${c.dni || '-'}</td>
+            <td>${c.nombre || '-'}</td>
+            <td>${c.direccion || '-'}</td>
+            <td>${c.telefono || '-'}</td>
+            <td><span class="badge">${c.tipo_compra || 'Sin compras'}</span></td>
+            <td><strong>${formatearPrecio(c.total_gastado)}</strong> <small style="color:#666;">(${pedidosTexto})</small></td>
+            <td>
+                <button class="btn-secundario btn-pedido-cliente" 
+                        data-dni="${c.dni || ''}" 
+                        data-nombre="${c.nombre || ''}" 
+                        data-direccion="${c.direccion || ''}" 
+                        data-telefono="${c.telefono || ''}">
+                    + Nuevo Pedido
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    renderizarControlesPaginacion('paginacion-clientes', paginacion.pagina, paginacion.totalPaginas, 'cambiarPaginaClientes');
+}
+
+function cambiarPaginaClientes(nuevaPagina) {
+    paginaClientes = nuevaPagina;
+    cargarClientes();
+}
+
+// Búsqueda en vivo
+document.addEventListener('input', (e) => {
+    if (e.target && e.target.id === 'filtro-cliente-busqueda') {
+        paginaClientes = 1;
+        cargarClientes();
+    }
+});
+
+// Eventos de Subtabs (Todos / Por Mayor / Por Menor)
+document.addEventListener('click', (e) => {
+    if (e.target && e.target.classList.contains('subtab-btn-cliente')) {
+        document.querySelectorAll('.subtab-btn-cliente').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        tipoClienteFiltro = e.target.dataset.subtipo;
+        paginaClientes = 1;
+        cargarClientes();
+    }
+
+    // Botón "+ Nuevo Pedido" desde la Agenda
+    if (e.target && e.target.classList.contains('btn-pedido-cliente')) {
+        const { dni, nombre, direccion, telefono } = e.target.dataset;
+        crearPedidoParaCliente(dni, nombre, direccion, telefono);
+    }
+});
+
+function crearPedidoParaCliente(dni, nombre, direccion, contacto) {
+    const modal = document.getElementById('modal-pedido');
+    if (!modal) return;
+
+    // Reinicia el formulario y limpia las listas de productos y combos
+    formPedido.reset();
+    itemsContainer.innerHTML = '';
+    itemsComboContainer.innerHTML = '';
+    document.getElementById('label-destinatario').classList.add('hidden');
+
+    // Pre-completa los datos del cliente
+    document.getElementById('pedido-dni').value = dni;
+    document.getElementById('pedido-cliente').value = nombre;
+    document.getElementById('pedido-direccion').value = direccion;
+    document.getElementById('pedido-contacto').value = contacto;
+
+    modal.classList.remove('hidden');
+}

@@ -13,6 +13,7 @@
         <button class="tab-btn active" data-tab="stock">Stock</button>
         <button class="tab-btn" data-tab="pedidos">Pedidos</button>
         <button class="tab-btn" data-tab="combos">Sets</button>
+        <button class="tab-btn" data-tab="clientes">Clientes</button>
     </nav>
 </header>
 
@@ -46,9 +47,7 @@
                 <th>Acciones</th>
             </tr>
             </thead>
-            <tbody id="tabla-productos">
-            <!-- se llena con JS -->
-            </tbody>
+            <tbody id="tabla-productos"></tbody>
         </table>
         <div id="paginacion-productos" class="paginacion"></div>
     </section>
@@ -83,7 +82,6 @@
                 </div>
             </div>
             <div class="ganancia-desglose">
-
                 <div class="chip-persona">
                     <span class="chip-nombre">Elias</span>
                     <span id="ganancia-elias-valor" class="chip-valor"></span>
@@ -107,9 +105,7 @@
                 <th>Acciones</th>
             </tr>
             </thead>
-            <tbody id="tabla-pedidos">
-            <!-- se llena con JS -->
-            </tbody>
+            <tbody id="tabla-pedidos"></tbody>
         </table>
         <div id="paginacion-pedidos" class="paginacion"></div>
     </section>
@@ -132,13 +128,45 @@
                 <th>Acciones</th>
             </tr>
             </thead>
-            <tbody id="tabla-sets">
-            <!-- se llena con JS -->
-            </tbody>
+            <tbody id="tabla-sets"></tbody>
         </table>
         <div id="paginacion-sets" class="paginacion"></div>
     </section>
-</main>
+
+    <!-- PANEL: CLIENTES -->
+    <section id="tab-clientes" class="tab-panel">
+        <div class="panel-header">
+            <h2>Agenda de Clientes</h2>
+        </div>
+
+        <div class="subtabs">
+            <button class="subtab-btn-cliente active" data-subtipo="">Todos</button>
+            <button class="subtab-btn-cliente" data-subtipo="mayor">Por Mayor</button>
+            <button class="subtab-btn-cliente" data-subtipo="menor">Por Menor</button>
+        </div>
+
+        <div class="filtro-seccion">
+            <label>Buscar: </label>
+            <input type="text" id="filtro-cliente-busqueda" placeholder="Buscar por DNI o Nombre...">
+        </div>
+
+        <table>
+            <thead>
+            <tr>
+                <th>DNI</th>
+                <th>Nombre</th>
+                <th>Dirección</th>
+                <th>Contacto</th>
+                <th>Tipo</th>
+                <th>Total Gastado</th>
+                <th>Acciones</th>
+            </tr>
+            </thead>
+            <tbody id="tabla-clientes"></tbody>
+        </table>
+
+        <div id="paginacion-clientes" class="paginacion"></div>
+    </section>
 
 <!-- MODAL: nuevo/editar producto -->
 <div id="modal-producto" class="modal hidden">
@@ -193,6 +221,7 @@
     <div class="modal-content">
         <h3>Nuevo pedido</h3>
         <form id="form-pedido">
+            <label>DNI <input type="text" id="pedido-dni" required></label>
             <label>Cliente <input type="text" id="pedido-cliente" required></label>
             <label>Dirección <input type="text" id="pedido-direccion"></label>
             <label>Contacto <input type="text" id="pedido-contacto"></label>
@@ -212,7 +241,6 @@
                     <option value="ludmila">Ludmila</option>
                 </select>
             </label>
-
 
             <h4>Productos</h4>
             <div id="pedido-items"></div>
