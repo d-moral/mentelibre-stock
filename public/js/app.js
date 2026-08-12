@@ -279,6 +279,7 @@ function renderizarPedidos() {
             : 'Efectivo';
 
         const esRealizado = p.estado === 'confirmado' || p.estado === 'vendido';
+        const esCancelado = p.estado === 'cancelado';
         tr.dataset.pedidoId = p.id;
 
         tr.innerHTML = `
@@ -295,7 +296,7 @@ function renderizarPedidos() {
           </a>
         ` : ''}
         ${esPendiente ? `<button class="btn-peligro" onclick="cancelarPedido(${p.id})">Cancelar</button>` : ''}
-        ${esRealizado ? `<button class="btn-secundario" onclick="toggleDetallePedido(${p.id})">⋮</button>` : ''}
+        ${(esRealizado || esCancelado) ? `<button class="btn-secundario" onclick="toggleDetallePedido(${p.id})">⋮</button>` : ''}
       </td>
     `;
         tbody.appendChild(tr);
@@ -319,10 +320,21 @@ async function toggleDetallePedido(id) {
 
     const res = await fetch(`${API}/pedidos/${id}`);
     const pedido = await res.json();
+    const esCancelado = pedido.estado === 'cancelado';
 
     const filasItems = pedido.items.map(item => {
-        const ganancia = (Number(item.precio_unitario) - Number(item.precio_compra_unitario)) * item.cantidad;
         const etiqueta = item.set_id ? `${item.set_nombre} (set)` : item.producto_nombre;
+
+        if (esCancelado) {
+            // En un pedido cancelado no hay ganancia real (la venta no se concretó),
+            // solo interesa qué y cuánto se canceló.
+            return `<tr>
+        <td>${etiqueta}</td>
+        <td>${item.cantidad}</td>
+      </tr>`;
+        }
+
+        const ganancia = (Number(item.precio_unitario) - Number(item.precio_compra_unitario)) * item.cantidad;
         return `<tr>
       <td>${etiqueta}</td>
       <td>${item.cantidad}</td>
@@ -330,13 +342,17 @@ async function toggleDetallePedido(id) {
     </tr>`;
     }).join('');
 
+    const encabezado = esCancelado
+        ? '<tr><th>Producto</th><th>Cant. cancelada</th></tr>'
+        : '<tr><th>Producto</th><th>Cant.</th><th>Ganancia</th></tr>';
+
     const filaDetalle = document.createElement('tr');
     filaDetalle.id = `detalle-pedido-${id}`;
     filaDetalle.className = 'fila-detalle-pedido';
     filaDetalle.innerHTML = `
     <td colspan="7">
       <table class="detalle-ganancia-items">
-        <thead><tr><th>Producto</th><th>Cant.</th><th>Ganancia</th></tr></thead>
+        <thead>${encabezado}</thead>
         <tbody>${filasItems}</tbody>
       </table>
     </td>
@@ -446,12 +462,12 @@ function agregarItemCombo() {
     const combosDisponibles = setsCache.filter(s => s.activo);
 
     if (combosDisponibles.length === 0) {
-        alert('Todavía no tenés combos armados');
+        alert('Todavía no tenés sets armados');
         return;
     }
 
     const div = document.createElement('div');
-    div.className = 'item-combo';
+    div.className = 'item-pedido item-combo';
 
     const opciones = combosDisponibles
         .map(s => {
