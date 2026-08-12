@@ -27,6 +27,36 @@ function fechaLocalISO(fechaISO) {
     return `${year}-${month}-${day}`;
 }
 
+// ---------- PAGINACIÓN (reutilizable en Stock, Pedidos y Sets) ----------
+const TAM_PAGINA = 10;
+
+// Recorta un array a la página pedida, ajustando la página si quedó
+// fuera de rango (por ejemplo, si se eliminó el último item de la última página)
+function paginar(items, paginaActual) {
+    const totalPaginas = Math.max(1, Math.ceil(items.length / TAM_PAGINA));
+    const paginaValida = Math.min(Math.max(1, paginaActual), totalPaginas);
+    const inicio = (paginaValida - 1) * TAM_PAGINA;
+    return {
+        pagina: paginaValida,
+        totalPaginas,
+        itemsPagina: items.slice(inicio, inicio + TAM_PAGINA),
+    };
+}
+
+function renderizarControlesPaginacion(contenedorId, pagina, totalPaginas, nombreFuncionCambio) {
+    const contenedor = document.getElementById(contenedorId);
+    if (totalPaginas <= 1) {
+        contenedor.innerHTML = '';
+        return;
+    }
+
+    contenedor.innerHTML = `
+    <button type="button" class="btn-secundario" ${pagina <= 1 ? 'disabled' : ''} onclick="${nombreFuncionCambio}(${pagina - 1})">‹ Anterior</button>
+    <span class="paginacion-info">Página ${pagina} de ${totalPaginas}</span>
+    <button type="button" class="btn-secundario" ${pagina >= totalPaginas ? 'disabled' : ''} onclick="${nombreFuncionCambio}(${pagina + 1})">Siguiente ›</button>
+  `;
+}
+
 // ---------- CARGA INICIAL ----------
 window.addEventListener('DOMContentLoaded', () => {
     cargarProductos();
@@ -36,7 +66,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // ---------- PRODUCTOS ----------
 let productosCache = [];
-document.getElementById('filtro-seccion').addEventListener('change', renderizarProductos);
+let paginaProductos = 1;
+document.getElementById('filtro-seccion').addEventListener('change', () => {
+    paginaProductos = 1;
+    renderizarProductos();
+});
 
 async function cargarProductos() {
     const res = await fetch(`${API}/productos`);
@@ -65,7 +99,10 @@ function renderizarProductos() {
         ? productosCache.filter(p => p.seccion === seccionElegida)
         : productosCache;
 
-    for (const p of productosFiltrados) {
+    const { pagina, totalPaginas, itemsPagina } = paginar(productosFiltrados, paginaProductos);
+    paginaProductos = pagina;
+
+    for (const p of itemsPagina) {
         const tr = document.createElement('tr');
         tr.dataset.productoId = p.id;
         const disponible = p.stock_actual > 0;
@@ -88,6 +125,13 @@ function renderizarProductos() {
     `;
         tbody.appendChild(tr);
     }
+
+    renderizarControlesPaginacion('paginacion-productos', pagina, totalPaginas, 'cambiarPaginaProductos');
+}
+
+function cambiarPaginaProductos(nuevaPagina) {
+    paginaProductos = nuevaPagina;
+    renderizarProductos();
 }
 
 function toggleDetalleProducto(id) {
@@ -248,6 +292,7 @@ formProducto.addEventListener('submit', async (e) => {
 let pedidosCache = [];
 let subEstadoPedidosActivo = 'pendiente';
 let fechaFiltroActiva = '';
+let paginaPedidos = 1;
 async function cargarPedidos() {
     const res = await fetch(`${API}/pedidos`);
     pedidosCache = await res.json();
@@ -270,7 +315,10 @@ function renderizarPedidos() {
         return coincideEstado && coincideFecha;
     });
 
-    for (const p of pedidosFiltrados) {
+    const { pagina, totalPaginas, itemsPagina } = paginar(pedidosFiltrados, paginaPedidos);
+    paginaPedidos = pagina;
+
+    for (const p of itemsPagina) {
         const tr = document.createElement('tr');
         const esPendiente = p.estado === 'pendiente';
 
@@ -302,7 +350,13 @@ function renderizarPedidos() {
         tbody.appendChild(tr);
     }
 
+    renderizarControlesPaginacion('paginacion-pedidos', pagina, totalPaginas, 'cambiarPaginaPedidos');
     actualizarGananciaDia();
+}
+
+function cambiarPaginaPedidos(nuevaPagina) {
+    paginaPedidos = nuevaPagina;
+    renderizarPedidos();
 }
 
 async function toggleDetallePedido(id) {
@@ -554,6 +608,7 @@ document.querySelectorAll('.subtab-btn').forEach(btn => {
         document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         subEstadoPedidosActivo = btn.dataset.substate;
+        paginaPedidos = 1;
         renderizarPedidos();
     });
 });
@@ -561,12 +616,14 @@ document.querySelectorAll('.subtab-btn').forEach(btn => {
 
 document.getElementById('filtro-fecha').addEventListener('change', (e) => {
     fechaFiltroActiva = e.target.value;
+    paginaPedidos = 1;
     renderizarPedidos();
 });
 
 document.getElementById('btn-limpiar-fecha').addEventListener('click', () => {
     fechaFiltroActiva = '';
     document.getElementById('filtro-fecha').value = '';
+    paginaPedidos = 1;
     renderizarPedidos();
 });
 
@@ -582,6 +639,7 @@ document.getElementById('pedido-metodo-pago').addEventListener('change', (e) => 
 
 // ---------- COMBOS ----------
         let setsCache = [];
+        let paginaSets = 1;
 
         async function cargarSets() {
             const res = await fetch(`${API}/sets`);
@@ -593,7 +651,11 @@ document.getElementById('pedido-metodo-pago').addEventListener('change', (e) => 
             const tbody = document.getElementById('tabla-sets');
             tbody.innerHTML = '';
 
-            for (const s of setsCache.filter(s => s.activo)) {
+            const setsActivos = setsCache.filter(s => s.activo);
+            const { pagina, totalPaginas, itemsPagina } = paginar(setsActivos, paginaSets);
+            paginaSets = pagina;
+
+            for (const s of itemsPagina) {
                 const tr = document.createElement('tr');
                 tr.dataset.setId = s.id;
                 const disponible = s.stock_actual > 0;
@@ -615,6 +677,13 @@ document.getElementById('pedido-metodo-pago').addEventListener('change', (e) => 
     `;
                 tbody.appendChild(tr);
             }
+
+            renderizarControlesPaginacion('paginacion-sets', pagina, totalPaginas, 'cambiarPaginaSets');
+        }
+
+        function cambiarPaginaSets(nuevaPagina) {
+            paginaSets = nuevaPagina;
+            renderizarSets();
         }
 
         async function toggleDetalleSet(id) {

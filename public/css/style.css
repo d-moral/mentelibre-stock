@@ -409,3 +409,25 @@ th {
     color: #64748b;
     font-weight: 600;
 }
+
+.paginacion {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.paginacion:empty {
+    margin-top: 0;
+}
+
+.paginacion-info {
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.paginacion button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
