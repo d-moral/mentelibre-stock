@@ -70,3 +70,4 @@ CREATE INDEX IF NOT EXISTS idx_set_items_producto_id ON set_items(producto_id);
 ALTER TABLE pedido_items ADD COLUMN IF NOT EXISTS set_id INTEGER REFERENCES sets(id) ON DELETE SET NULL;
 ALTER TABLE pedido_items ADD COLUMN IF NOT EXISTS set_nombre VARCHAR(150);
 ALTER TABLE pedido_items ALTER COLUMN producto_id DROP NOT NULL;
+ALTER TABLE pedido_items ADD COLUMN IF NOT EXISTS tipo VARCHAR(20) NOT NULL DEFAULT 'minorista';

@@ -36,6 +36,7 @@ async function crear({ nombre_cliente, direccion, contacto, items, metodo_pago, 
                     set_nombre: set.nombre,
                     precio_unitario: esMayor ? set.precio_venta_mayor : set.precio_venta,
                     precio_compra_unitario: set.costo_unitario,
+                    tipo: esMayor ? 'mayorista' : 'minorista',
                 });
             } else {
                 // --- Item es un producto suelto ---
@@ -64,6 +65,7 @@ async function crear({ nombre_cliente, direccion, contacto, items, metodo_pago, 
                     precio_compra_unitario: esMayor && producto.precio_compra_mayor != null
                         ? producto.precio_compra_mayor
                         : producto.precio_compra,
+                    tipo: esMayor ? 'mayorista' : 'minorista',
                 });
             }
         }
@@ -93,9 +95,9 @@ async function crear({ nombre_cliente, direccion, contacto, items, metodo_pago, 
         // 4. Crear cada item (con snapshot de nombre y precio) y descontar stock
         for (const item of productosInfo) {
             await client.query(
-                `INSERT INTO pedido_items (pedido_id, producto_id, set_id, producto_nombre, set_nombre, cantidad, precio_unitario, precio_compra_unitario)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-                [pedido.id, item.producto_id, item.set_id, item.producto_nombre, item.set_nombre, item.cantidad, item.precio_unitario, item.precio_compra_unitario]
+                `INSERT INTO pedido_items (pedido_id, producto_id, set_id, producto_nombre, set_nombre, cantidad, precio_unitario, precio_compra_unitario, tipo)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+                [pedido.id, item.producto_id, item.set_id, item.producto_nombre, item.set_nombre, item.cantidad, item.precio_unitario, item.precio_compra_unitario, item.tipo]
             );
 
             if (item.set_id) {
@@ -145,7 +147,7 @@ async function obtenerConItems(id) {
     if (!pedido) return null;
 
     const { rows: items } = await pool.query(
-        `SELECT id, producto_id, set_id, producto_nombre, set_nombre, cantidad, precio_unitario, precio_compra_unitario
+        `SELECT id, producto_id, set_id, producto_nombre, set_nombre, cantidad, precio_unitario, precio_compra_unitario, tipo
      FROM pedido_items
      WHERE pedido_id = $1`,
         [id]
