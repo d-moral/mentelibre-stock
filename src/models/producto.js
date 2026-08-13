@@ -99,4 +99,20 @@ function estaDisponible(producto) {
   return producto.stock_actual > 0;
 }
 
-module.exports = { getAll, getById, create, update, reponerStock, remove, estaDisponible };
+async function masVendidos(limite = 5) {
+    const result = await pool.query(
+        `SELECT
+        COALESCE(pi.set_nombre, pi.producto_nombre) AS nombre,
+        SUM(pi.cantidad)::INT AS total_vendido
+     FROM pedidos p
+     JOIN pedido_items pi ON pi.pedido_id = p.id
+     WHERE p.estado = 'vendido'
+     GROUP BY COALESCE(pi.set_nombre, pi.producto_nombre)
+     ORDER BY total_vendido DESC
+     LIMIT $1`,
+        [limite]
+    );
+    return result.rows;
+}
+
+module.exports = { getAll, getById, create, update, reponerStock, remove, estaDisponible, masVendidos };

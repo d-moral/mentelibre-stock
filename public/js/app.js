@@ -88,7 +88,31 @@ async function cargarProductos() {
     productosCache = await res.json();
     actualizarFiltroSecciones();
     actualizarResumenStock();
+    cargarProductosMasVendidos();
     renderizarProductos();
+}
+
+async function cargarProductosMasVendidos() {
+    const contenedor = document.getElementById('top-vendidos-stock');
+    const lista = document.getElementById('top-vendidos-lista');
+
+    try {
+        const res = await fetch(`${API}/productos/mas-vendidos`);
+        const masVendidos = await res.json();
+
+        if (masVendidos.length === 0) {
+            contenedor.classList.add('hidden');
+            return;
+        }
+
+        lista.innerHTML = masVendidos
+            .map(p => `<li>${p.nombre} <span class="top-vendidos-cantidad">(${p.total_vendido} un.)</span></li>`)
+            .join('');
+
+        contenedor.classList.remove('hidden');
+    } catch (err) {
+        console.error('Error al cargar productos más vendidos:', err);
+    }
 }
 
 function actualizarResumenStock() {
