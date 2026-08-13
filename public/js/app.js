@@ -70,8 +70,15 @@ window.addEventListener('DOMContentLoaded', () => {
 // ---------- PRODUCTOS ----------
 let productosCache = [];
 let paginaProductos = 1;
+let busquedaProductoActiva = '';
 
 document.getElementById('filtro-seccion').addEventListener('change', () => {
+    paginaProductos = 1;
+    renderizarProductos();
+});
+
+document.getElementById('filtro-producto-busqueda').addEventListener('input', (e) => {
+    busquedaProductoActiva = e.target.value.trim().toLowerCase();
     paginaProductos = 1;
     renderizarProductos();
 });
@@ -111,9 +118,9 @@ function renderizarProductos() {
     tbody.innerHTML = '';
 
     const seccionElegida = document.getElementById('filtro-seccion').value;
-    const productosFiltrados = seccionElegida
-        ? productosCache.filter(p => p.seccion === seccionElegida)
-        : productosCache;
+    const productosFiltrados = productosCache
+        .filter(p => !seccionElegida || p.seccion === seccionElegida)
+        .filter(p => !busquedaProductoActiva || p.nombre.toLowerCase().includes(busquedaProductoActiva));
 
     const { pagina, totalPaginas, itemsPagina } = paginar(productosFiltrados, paginaProductos);
     paginaProductos = pagina;
