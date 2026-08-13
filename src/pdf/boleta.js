@@ -79,13 +79,13 @@ function generarBoleta(pedido, res) {
     doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
     doc.moveDown(0.5);
 
-    function renderLinea(nombre, tipo, cantidad, precioUnit, indentado, mostrarSubtotal) {
+    function renderLinea(nombre, esMayor, cantidad, precioUnit, indentado, mostrarSubtotal) {
         const y = doc.y;
         const x = indentado ? colProducto + 15 : colProducto;
         if (indentado) doc.fontSize(9).fillColor('#555555');
         doc.text(nombre, x, y);
-        if (tipo) {
-            const tipoTexto = tipo === 'mayorista' ? 'Mayorista' : 'Minorista';
+        if (esMayor !== null) {
+            const tipoTexto = esMayor ? 'Mayorista' : 'Minorista';
             doc.text(tipoTexto, colTipo, y);
         }
         doc.text(String(cantidad), colCantidad, y);
@@ -102,15 +102,16 @@ function generarBoleta(pedido, res) {
     const itemsCombos = pedido.items.filter(i => i.set_id);
     const itemsProductos = pedido.items.filter(i => !i.set_id);
 
+
     for (const item of itemsCombos) {
-        renderLinea(item.set_nombre, item.tipo, item.cantidad, item.precio_unitario, false, true);
+        renderLinea(item.set_nombre, item.es_mayor, item.cantidad, item.precio_unitario, false, true);
         for (const comp of item.componentes || []) {
             renderLinea(`- ${comp.producto_nombre}`, null, comp.cantidad * item.cantidad, comp.precio_venta, true, false);
         }
     }
 
     for (const item of itemsProductos) {
-        renderLinea(item.producto_nombre, item.tipo, item.cantidad, item.precio_unitario, false, true);
+        renderLinea(item.producto_nombre, item.es_mayor, item.cantidad, item.precio_unitario, false, true);
     }
 
 

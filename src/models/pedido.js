@@ -125,7 +125,7 @@ async function obtenerConItems(id) {
     if (!pedido) return null;
 
     const { rows: items } = await pool.query(
-        `SELECT id, producto_id, set_id, producto_nombre, set_nombre, cantidad, precio_unitario, precio_compra_unitario, tipo
+        `SELECT id, producto_id, set_id, producto_nombre, set_nombre, cantidad, precio_unitario, precio_compra_unitario, tipo, es_mayor
      FROM pedido_items
      WHERE pedido_id = $1`,
         [id]
