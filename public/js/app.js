@@ -500,11 +500,22 @@ document.getElementById('btn-cancelar-pedido').addEventListener('click', () => {
 
 document.getElementById('btn-agregar-item').addEventListener('click', agregarItemPedido);
 
-function agregarItemPedido() {
-    const div = document.createElement('div');
-    div.className = 'item-pedido';
 
-    const opciones = productosCache
+document.getElementById('btn-agregar-item-combo').addEventListener('click', agregarItemCombo);
+
+
+function opcionesSeccionesPedido() {
+    const secciones = [...new Set(productosCache.map(p => p.seccion).filter(Boolean))];
+    return '<option value="">Todas las secciones</option>' +
+        secciones.map(s => `<option value="${s}">${s}</option>`).join('');
+}
+
+function opcionesProductoFiltradas(seccion, busqueda) {
+    const texto = (busqueda || '').trim().toLowerCase();
+
+    return productosCache
+        .filter(p => !seccion || p.seccion === seccion)
+        .filter(p => !texto || p.nombre.toLowerCase().includes(texto))
         .map(p => {
             const noDisponible = p.stock_actual <= 0;
             return `<option value="${p.id}" ${noDisponible ? 'disabled' : ''}>
@@ -512,18 +523,34 @@ function agregarItemPedido() {
       </option>`;
         })
         .join('');
+}
+
+function agregarItemPedido() {
+    const div = document.createElement('div');
+    div.className = 'item-pedido';
 
     div.innerHTML = `
-    <select class="item-producto">${opciones}</select>
+    <select class="item-seccion">${opcionesSeccionesPedido()}</select>
+    <input type="text" class="item-busqueda" placeholder="Buscar producto...">
+    <select class="item-producto">${opcionesProductoFiltradas('', '')}</select>
     <input type="number" class="item-cantidad" min="1" value="1">
     <label class="checkbox-mayor"><input type="checkbox" class="item-es-mayor"> ¿Mayor?</label>
     <button type="button" class="btn-peligro" onclick="this.parentElement.remove()">×</button>
   `;
 
+    const selectSeccion = div.querySelector('.item-seccion');
+    const inputBusqueda = div.querySelector('.item-busqueda');
+    const selectProducto = div.querySelector('.item-producto');
+
+    const refiltrar = () => {
+        selectProducto.innerHTML = opcionesProductoFiltradas(selectSeccion.value, inputBusqueda.value);
+    };
+
+    selectSeccion.addEventListener('change', refiltrar);
+    inputBusqueda.addEventListener('input', refiltrar);
+
     itemsContainer.appendChild(div);
 }
-
-document.getElementById('btn-agregar-item-combo').addEventListener('click', agregarItemCombo);
 
 function agregarItemCombo() {
     const combosDisponibles = setsCache.filter(s => s.activo);
