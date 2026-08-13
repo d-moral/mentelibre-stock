@@ -308,12 +308,40 @@ formProducto.addEventListener('submit', async (e) => {
 let pedidosCache = [];
 let subEstadoPedidosActivo = 'pendiente';
 let fechaFiltroActiva = '';
+let granularidadActiva = 'dia';
 let paginaPedidos = 1;
 
 async function cargarPedidos() {
     const res = await fetch(`${API}/pedidos`);
     pedidosCache = await res.json();
     renderizarPedidos();
+}
+
+function calcularRangoFecha(fechaISO, granularidad) {
+    const fecha = new Date(fechaISO + 'T00:00:00');
+
+    if (granularidad === 'semana') {
+        const dia = fecha.getDay(); // 0 = domingo
+        const diff = dia === 0 ? 6 : dia - 1; // arranca el lunes
+        const desde = new Date(fecha);
+        desde.setDate(fecha.getDate() - diff);
+        const hasta = new Date(desde);
+        hasta.setDate(desde.getDate() + 6);
+        return { desde, hasta };
+    }
+
+    if (granularidad === 'mes') {
+        const desde = new Date(fecha.getFullYear(), fecha.getMonth(), 1);
+        const hasta = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0);
+        return { desde, hasta };
+    }
+
+    return { desde: fecha, hasta: fecha };
+}
+
+function fechaEnRango(fechaPedidoISO, desde, hasta) {
+    const f = new Date(fechaLocalISO(fechaPedidoISO) + 'T00:00:00');
+    return f >= desde && f <= hasta;
 }
 
 function renderizarPedidos() {
@@ -326,7 +354,10 @@ function renderizarPedidos() {
             : p.estado === subEstadoPedidosActivo;
 
         const coincideFecha = fechaFiltroActiva
-            ? fechaLocalISO(p.fecha) === fechaFiltroActiva
+            ? (() => {
+                const { desde, hasta } = calcularRangoFecha(fechaFiltroActiva, granularidadActiva);
+                return fechaEnRango(p.fecha, desde, hasta);
+            })()
             : true;
 
         return coincideEstado && coincideFecha;
@@ -429,25 +460,33 @@ async function toggleDetallePedido(id) {
 
 function actualizarGananciaDia() {
     const tarjeta = document.getElementById('tarjeta-ganancia');
+    const textoRango = document.getElementById('rango-ganancia-texto');
 
     if (!fechaFiltroActiva) {
         tarjeta.classList.add('hidden');
+        textoRango.textContent = '';
         return;
     }
 
-    const pedidosDelDia = pedidosCache.filter(p =>
-        fechaLocalISO(p.fecha) === fechaFiltroActiva &&
+    const { desde, hasta } = calcularRangoFecha(fechaFiltroActiva, granularidadActiva);
+
+    textoRango.textContent = granularidadActiva === 'dia'
+        ? ''
+        : `${desde.toLocaleDateString('es-AR')} al ${hasta.toLocaleDateString('es-AR')}`;
+
+    const pedidosDelRango = pedidosCache.filter(p =>
+        fechaEnRango(p.fecha, desde, hasta) &&
         (p.estado === 'confirmado' || p.estado === 'vendido')
     );
 
-    const total = pedidosDelDia.reduce((acc, p) => acc + Number(p.total), 0);
-    const gananciaReal = pedidosDelDia.reduce((acc, p) => acc + Number(p.ganancia_real), 0);
+    const total = pedidosDelRango.reduce((acc, p) => acc + Number(p.total), 0);
+    const gananciaReal = pedidosDelRango.reduce((acc, p) => acc + Number(p.ganancia_real), 0);
 
-    const totalElias = pedidosDelDia
+    const totalElias = pedidosDelRango
         .filter(p => p.destinatario === 'elias')
         .reduce((acc, p) => acc + Number(p.total), 0);
 
-    const totalLudmila = pedidosDelDia
+    const totalLudmila = pedidosDelRango
         .filter(p => p.destinatario === 'ludmila')
         .reduce((acc, p) => acc + Number(p.total), 0);
 
@@ -656,6 +695,12 @@ document.querySelectorAll('.subtab-btn').forEach(btn => {
 
 document.getElementById('filtro-fecha').addEventListener('change', (e) => {
     fechaFiltroActiva = e.target.value;
+    paginaPedidos = 1;
+    renderizarPedidos();
+});
+
+document.getElementById('filtro-granularidad').addEventListener('change', () => {
+    granularidadActiva = document.getElementById('filtro-granularidad').value;
     paginaPedidos = 1;
     renderizarPedidos();
 });

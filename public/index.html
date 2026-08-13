@@ -77,8 +77,16 @@
         </div>
 
         <div class="filtro-fecha">
+            <label>Ver por:
+                <select id="filtro-granularidad">
+                    <option value="dia">Día</option>
+                    <option value="semana">Semana</option>
+                    <option value="mes">Mes</option>
+                </select>
+            </label>
             <label>Fecha: <input type="date" id="filtro-fecha"></label>
             <button id="btn-limpiar-fecha" class="btn-secundario">Ver todas</button>
+            <span id="rango-ganancia-texto" class="rango-ganancia-texto"></span>
         </div>
 
         <div id="tarjeta-ganancia" class="tarjeta-ganancia hidden">
