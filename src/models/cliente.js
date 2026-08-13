@@ -21,6 +21,7 @@ class Cliente {
 
     static async listar({ busqueda = '', tipo = '', limite = 10, pagina = 1 }) {
         await pool.query('ALTER TABLE pedido_items ADD COLUMN IF NOT EXISTS es_mayor BOOLEAN DEFAULT false;');
+        await pool.query('ALTER TABLE clientes ADD COLUMN IF NOT EXISTS es_revendedor BOOLEAN NOT NULL DEFAULT false;');
 
         const offset = (pagina - 1) * limite;
         const whereConditions = [];
@@ -87,6 +88,30 @@ class Cliente {
                 totalPaginas: Math.ceil(total / limite) || 1
             }
         };
+    }
+    static async obtenerPorDni(dni) {
+        const { rows } = await pool.query('SELECT * FROM clientes WHERE dni = $1', [dni]);
+        return rows[0] || null;
+    }
+
+    static async marcarComoRevendedor(id) {
+        const { rows } = await pool.query(
+            `UPDATE clientes SET es_revendedor = true, actualizado_en = NOW()
+             WHERE id = $1 AND es_revendedor = false
+             RETURNING *`,
+            [id]
+        );
+        return rows[0] || null;
+    }
+
+    static async actualizarRevendedor(id, esRevendedor) {
+        const { rows } = await pool.query(
+            `UPDATE clientes SET es_revendedor = $1, actualizado_en = NOW()
+             WHERE id = $2
+             RETURNING *`,
+            [esRevendedor, id]
+        );
+        return rows[0] || null;
     }
 
     static async obtenerPorId(id) {
