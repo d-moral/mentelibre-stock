@@ -64,4 +64,15 @@ async function actualizarRevendedor(req, res) {
     }
 }
 
-module.exports = { listar, obtenerUno, obtenerPorDni, actualizarRevendedor };
+async function obtenerHistorial(req, res) {
+    try {
+        const { id } = req.params;
+        const historial = await Cliente.obtenerHistorial(id);
+        res.json(historial);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error al obtener el historial del cliente' });
+    }
+}
+
+module.exports = { listar, obtenerUno, obtenerPorDni, actualizarRevendedor, obtenerHistorial };

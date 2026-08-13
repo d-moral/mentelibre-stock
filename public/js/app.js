@@ -1007,6 +1007,7 @@ function renderizarClientes(clientes, paginacion) {
 
     for (const c of clientes) {
         const tr = document.createElement('tr');
+        tr.dataset.clienteId = c.id;
         const pedidosTexto = c.total_pedidos === 1 ? '1 pedido' : `${c.total_pedidos || 0} pedidos`;
         const esRevendedor = c.es_revendedor === true;
         const badgeRevendedor = esRevendedor
@@ -1022,7 +1023,7 @@ function renderizarClientes(clientes, paginacion) {
             <td>${badgeRevendedor}</td>
             <td class="total-gastado-celda"><strong>${formatearPrecio(c.total_gastado)}</strong> <small>(${pedidosTexto})</small></td>
             <td class="acciones-cell">
-            <button class="btn-secundario btn-pedido-cliente" 
+                <button class="btn-secundario btn-pedido-cliente" 
                         data-dni="${c.dni || ''}" 
                         data-nombre="${c.nombre || ''}" 
                         data-direccion="${c.direccion || ''}" 
@@ -1033,6 +1034,7 @@ function renderizarClientes(clientes, paginacion) {
                 <button class="btn-secundario btn-toggle-revendedor" data-id="${c.id}" data-actual="${esRevendedor}">
                     ${esRevendedor ? 'Quitar revendedor' : 'Marcar revendedor'}
                 </button>
+                <button class="btn-secundario" onclick="toggleDetalleCliente(${c.id})">⋮</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -1044,6 +1046,55 @@ function renderizarClientes(clientes, paginacion) {
 function cambiarPaginaClientes(nuevaPagina) {
     paginaClientes = nuevaPagina;
     cargarClientes();
+}
+
+async function toggleDetalleCliente(id) {
+    const filaExistente = document.getElementById(`detalle-cliente-${id}`);
+    if (filaExistente) {
+        filaExistente.remove();
+        return;
+    }
+
+    document.querySelectorAll('.fila-detalle-cliente').forEach(f => f.remove());
+
+    const filaCliente = document.querySelector(`tr[data-cliente-id="${id}"]`);
+    if (!filaCliente) return;
+
+    const res = await fetch(`${API}/clientes/${id}/historial`);
+    const { pedidos, topProductos } = await res.json();
+
+    const filasTop = topProductos.length > 0
+        ? topProductos.map((p, i) => `<tr><td>${i + 1}. ${p.nombre}</td><td>${p.total_comprado}</td></tr>`).join('')
+        : '<tr><td colspan="2">Sin compras vendidas todavía</td></tr>';
+
+    const filasPedidos = pedidos.length > 0
+        ? pedidos.map(p => `
+        <tr>
+          <td>${formatearFecha(p.fecha)}</td>
+          <td>${formatearPrecio(p.total)}</td>
+          <td class="estado-${p.estado}">${p.estado}</td>
+        </tr>`).join('')
+        : '<tr><td colspan="3">Todavía no hizo pedidos</td></tr>';
+
+    const filaDetalle = document.createElement('tr');
+    filaDetalle.id = `detalle-cliente-${id}`;
+    filaDetalle.className = 'fila-detalle-cliente';
+    filaDetalle.innerHTML = `
+    <td colspan="8">
+      <h4>Más comprado</h4>
+      <table class="detalle-ganancia-items">
+        <thead><tr><th>Producto</th><th>Cantidad total</th></tr></thead>
+        <tbody>${filasTop}</tbody>
+      </table>
+      <h4>Historial de pedidos</h4>
+      <table class="detalle-ganancia-items">
+        <thead><tr><th>Fecha</th><th>Total</th><th>Estado</th></tr></thead>
+        <tbody>${filasPedidos}</tbody>
+      </table>
+    </td>
+  `;
+
+    filaCliente.insertAdjacentElement('afterend', filaDetalle);
 }
 
 // Búsqueda en vivo
