@@ -122,6 +122,33 @@ class Cliente {
         const { rows } = await pool.query('SELECT * FROM clientes WHERE id = $1', [id]);
         return rows[0] || null;
     }
+
+    static async obtenerHistorial(id) {
+        const { rows: pedidos } = await pool.query(
+            `SELECT p.id, p.fecha, p.total, p.estado
+                 FROM pedidos p
+                 JOIN clientes c ON (p.cliente_id = c.id OR p.dni = c.dni)
+                 WHERE c.id = $1
+                 ORDER BY p.fecha DESC`,
+            [id]
+        );
+
+        const { rows: topProductos } = await pool.query(
+            `SELECT
+                    COALESCE(pi.set_nombre, pi.producto_nombre) AS nombre,
+                    SUM(pi.cantidad)::INT AS total_comprado
+                 FROM pedidos p
+                 JOIN pedido_items pi ON pi.pedido_id = p.id
+                 JOIN clientes c ON (p.cliente_id = c.id OR p.dni = c.dni)
+                 WHERE c.id = $1 AND p.estado = 'vendido'
+                 GROUP BY COALESCE(pi.set_nombre, pi.producto_nombre)
+                 ORDER BY total_comprado DESC
+                 LIMIT 5`,
+            [id]
+        );
+
+        return { pedidos, topProductos };
+    }
 }
 
 module.exports = Cliente;
