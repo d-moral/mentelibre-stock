@@ -431,3 +431,25 @@ th {
     opacity: 0.4;
     cursor: not-allowed;
 }
+
+.resumen-stock {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 16px;
+}
+
+.resumen-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.resumen-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: #6b7280;
+}
+
+.resumen-valor {
+    font-size: 20px;
+    font-weight: 600;
+}
