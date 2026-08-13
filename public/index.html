@@ -162,6 +162,7 @@
             <button class="subtab-btn-cliente active" data-subtipo="">Todos</button>
             <button class="subtab-btn-cliente" data-subtipo="mayor">Por Mayor</button>
             <button class="subtab-btn-cliente" data-subtipo="menor">Por Menor</button>
+            <button class="subtab-btn-cliente" data-subtipo="revendedor">Revendedores</button>
         </div>
 
         <div class="filtro-seccion">
@@ -177,6 +178,7 @@
                 <th>Dirección</th>
                 <th>Contacto</th>
                 <th>Tipo</th>
+                <th>Revendedor</th>
                 <th>Total Gastado</th>
                 <th>Acciones</th>
             </tr>
@@ -241,6 +243,7 @@
         <h3>Nuevo pedido</h3>
         <form id="form-pedido">
             <label>DNI <input type="text" id="pedido-dni" required></label>
+            <span id="aviso-revendedor" class="aviso-revendedor hidden">✓ Cliente revendedor — se marcará "¿Mayor?" automáticamente</span>
             <label>Cliente <input type="text" id="pedido-cliente" required></label>
             <label>Dirección <input type="text" id="pedido-direccion"></label>
             <label>Contacto <input type="text" id="pedido-contacto"></label>

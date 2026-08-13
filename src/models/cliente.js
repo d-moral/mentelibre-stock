@@ -33,7 +33,9 @@ class Cliente {
             whereConditions.push(`(c.nombre ILIKE $${params.length} OR c.dni ILIKE $${params.length})`);
         }
 
-        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+        if (tipo === 'revendedor') {
+            whereConditions.push(`c.es_revendedor = true`);
+        }
 
         const havingConditions = [];
         if (tipo === 'mayor') {
@@ -41,6 +43,8 @@ class Cliente {
         } else if (tipo === 'menor') {
             havingConditions.push(`COUNT(CASE WHEN pi.es_mayor = false THEN 1 END) > 0`);
         }
+
+        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
         const havingClause = havingConditions.length > 0 ? `HAVING ${havingConditions.join(' AND ')}` : '';
 

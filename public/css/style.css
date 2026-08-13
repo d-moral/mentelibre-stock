@@ -118,6 +118,16 @@ th {
     gap: 0.4rem;
 }
 
+.total-gastado-celda {
+    white-space: nowrap;
+}
+
+.total-gastado-celda small {
+    display: block;
+    color: #666;
+    font-weight: normal;
+}
+
 .acciones-cell button {
     padding: 0.3rem 0.7rem;
     font-size: 0.8rem;
@@ -459,4 +469,25 @@ th {
 .resumen-valor {
     font-size: 20px;
     font-weight: 600;
+}
+
+.badge-revendedor {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.badge-gris {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.aviso-revendedor {
+    display: block;
+    font-size: 0.85rem;
+    color: #166534;
+    margin: -0.5rem 0 0.8rem;
+}
+
+.aviso-revendedor.hidden {
+    display: none;
 }

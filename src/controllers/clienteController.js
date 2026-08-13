@@ -30,4 +30,38 @@ async function obtenerUno(req, res) {
     }
 }
 
-module.exports = { listar, obtenerUno };
+async function obtenerPorDni(req, res) {
+    try {
+        const { dni } = req.params;
+        const cliente = await Cliente.obtenerPorDni(dni);
+        if (!cliente) {
+            return res.status(404).json({ error: 'Cliente no encontrado' });
+        }
+        res.json(cliente);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error al obtener el cliente' });
+    }
+}
+
+async function actualizarRevendedor(req, res) {
+    try {
+        const { id } = req.params;
+        const { es_revendedor } = req.body;
+
+        if (typeof es_revendedor !== 'boolean') {
+            return res.status(400).json({ error: 'es_revendedor debe ser true o false' });
+        }
+
+        const cliente = await Cliente.actualizarRevendedor(id, es_revendedor);
+        if (!cliente) {
+            return res.status(404).json({ error: 'Cliente no encontrado' });
+        }
+        res.json(cliente);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error al actualizar el cliente' });
+    }
+}
+
+module.exports = { listar, obtenerUno, obtenerPorDni, actualizarRevendedor };
