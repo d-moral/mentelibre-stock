@@ -201,6 +201,7 @@ th {
 
 .item-pedido {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
     align-items: center;
     margin-bottom: 0.5rem;
@@ -222,11 +223,17 @@ th {
 }
 
 .item-pedido select {
-    flex: 1;
+    flex: 1 1 140px;
+    min-width: 100px;
 }
 
-.item-pedido input {
-    width: 70px;
+.item-pedido input[type="text"],
+.item-pedido input[type="number"] {
+    flex: 0 1 100px;
+}
+
+.item-pedido input[type="number"] {
+    max-width: 70px;
 }
 
 .filtro-seccion {
