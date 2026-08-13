@@ -1,4 +1,5 @@
 const Pedido = require('../models/pedido');
+const Cliente = require('../models/cliente');
 const { generarBoleta } = require('../pdf/boleta');
 
 async function listar(req, res) {
@@ -65,7 +66,23 @@ async function crear(req, res) {
             }
         }
 
+        const clienteExistente = await Cliente.obtenerPorDni(dni);
+        const yaEsRevendedor = clienteExistente ? clienteExistente.es_revendedor : false;
+
+        if (!yaEsRevendedor) {
+            const cantidadMayorista = items
+                .filter(item => item.es_mayor)
+                .reduce((acc, item) => acc + Number(item.cantidad), 0);
+
+            if (cantidadMayorista > 0 && cantidadMayorista < 3) {
+                return res.status(400).json({
+                    error: 'Para aplicar precio mayorista en la primera compra, el cliente debe llevar al menos 3 productos por mayor en total',
+                });
+            }
+        }
+
         const pedido = await Pedido.crear({ dni, nombre_cliente, direccion, contacto, items, metodo_pago, destinatario });
+
         res.status(201).json(pedido);
     } catch (err) {
         console.error(err);
