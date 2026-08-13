@@ -108,4 +108,14 @@ async function eliminar(req, res) {
   }
 }
 
-module.exports = { listar, obtenerUno, crear, actualizar, reponerStock, eliminar };
+async function masVendidos(req, res) {
+  try {
+    const productos = await Producto.masVendidos(5);
+    res.json(productos);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener los productos más vendidos' });
+  }
+}
+
+module.exports = { listar, obtenerUno, crear, actualizar, reponerStock, eliminar, masVendidos };
