@@ -178,6 +178,23 @@ async function cambiarEstado(id, nuevoEstado) {
             );
 
             pedido.cliente_id = clienteId;
+
+            const { rows: itemsMayor } = await client.query(
+                `SELECT COALESCE(SUM(cantidad), 0) AS total_mayor
+                 FROM pedido_items
+                 WHERE pedido_id = $1 AND es_mayor = true`,
+                [id]
+            );
+
+            const cantidadMayorista = Number(itemsMayor[0].total_mayor);
+
+            if (cantidadMayorista >= 3) {
+                await client.query(
+                    `UPDATE clientes SET es_revendedor = true, actualizado_en = NOW()
+                     WHERE id = $1 AND es_revendedor = false`,
+                    [clienteId]
+                );
+            }
         }
 
         await client.query('COMMIT');
