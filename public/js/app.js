@@ -525,11 +525,15 @@ const formPedido = document.getElementById('form-pedido');
 const itemsContainer = document.getElementById('pedido-items');
 const itemsComboContainer = document.getElementById('pedido-items-combos');
 
+let dniEsRevendedorActual = false;
+
 document.getElementById('btn-nuevo-pedido').addEventListener('click', () => {
     formPedido.reset();
     itemsContainer.innerHTML = '';
     itemsComboContainer.innerHTML = '';
     document.getElementById('label-destinatario').classList.add('hidden');
+    dniEsRevendedorActual = false;
+    document.getElementById('aviso-revendedor').classList.add('hidden');
     modalPedido.classList.remove('hidden');
 });
 
@@ -573,7 +577,7 @@ function agregarItemPedido() {
     <input type="text" class="item-busqueda" placeholder="Buscar producto...">
     <select class="item-producto">${opcionesProductoFiltradas('', '')}</select>
     <input type="number" class="item-cantidad" min="1" value="1">
-    <label class="checkbox-mayor"><input type="checkbox" class="item-es-mayor"> ¿Mayor?</label>
+    <label class="checkbox-mayor"><input type="checkbox" class="item-es-mayor" ${dniEsRevendedorActual ? 'checked' : ''}> ¿Mayor?</label>
     <button type="button" class="btn-peligro" onclick="this.parentElement.remove()">×</button>
   `;
 
@@ -614,7 +618,7 @@ function agregarItemCombo() {
     div.innerHTML = `
     <select class="item-combo-set">${opciones}</select>
     <input type="number" class="item-combo-cantidad" min="1" value="1">
-    <label class="checkbox-mayor"><input type="checkbox" class="item-combo-es-mayor"> ¿Mayor?</label>
+    <label class="checkbox-mayor"><input type="checkbox" class="item-combo-es-mayor" ${dniEsRevendedorActual ? 'checked' : ''}> ¿Mayor?</label>
     <button type="button" class="btn-peligro" onclick="this.parentElement.remove()">×</button>
   `;
 
@@ -997,6 +1001,10 @@ function renderizarClientes(clientes, paginacion) {
     for (const c of clientes) {
         const tr = document.createElement('tr');
         const pedidosTexto = c.total_pedidos === 1 ? '1 pedido' : `${c.total_pedidos || 0} pedidos`;
+        const esRevendedor = c.es_revendedor === true;
+        const badgeRevendedor = esRevendedor
+            ? '<span class="badge badge-revendedor">Sí</span>'
+            : '<span class="badge badge-gris">No</span>';
 
         tr.innerHTML = `
             <td>${c.dni || '-'}</td>
@@ -1004,14 +1012,19 @@ function renderizarClientes(clientes, paginacion) {
             <td>${c.direccion || '-'}</td>
             <td>${c.telefono || '-'}</td>
             <td><span class="badge">${c.tipo_compra || 'Sin compras'}</span></td>
-            <td><strong>${formatearPrecio(c.total_gastado)}</strong> <small style="color:#666;">(${pedidosTexto})</small></td>
-            <td>
-                <button class="btn-secundario btn-pedido-cliente" 
+            <td>${badgeRevendedor}</td>
+            <td class="total-gastado-celda"><strong>${formatearPrecio(c.total_gastado)}</strong> <small>(${pedidosTexto})</small></td>
+            <td class="acciones-cell">
+            <button class="btn-secundario btn-pedido-cliente" 
                         data-dni="${c.dni || ''}" 
                         data-nombre="${c.nombre || ''}" 
                         data-direccion="${c.direccion || ''}" 
-                        data-telefono="${c.telefono || ''}">
+                        data-telefono="${c.telefono || ''}"
+                        data-revendedor="${esRevendedor}">
                     + Nuevo Pedido
+                </button>
+                <button class="btn-secundario btn-toggle-revendedor" data-id="${c.id}" data-actual="${esRevendedor}">
+                    ${esRevendedor ? 'Quitar revendedor' : 'Marcar revendedor'}
                 </button>
             </td>
         `;
@@ -1046,12 +1059,24 @@ document.addEventListener('click', (e) => {
 
     // Botón "+ Nuevo Pedido" desde la Agenda
     if (e.target && e.target.classList.contains('btn-pedido-cliente')) {
-        const { dni, nombre, direccion, telefono } = e.target.dataset;
-        crearPedidoParaCliente(dni, nombre, direccion, telefono);
+        const { dni, nombre, direccion, telefono, revendedor } = e.target.dataset;
+        crearPedidoParaCliente(dni, nombre, direccion, telefono, revendedor === 'true');
+    }
+
+    // Botón "Marcar/Quitar revendedor" desde la Agenda
+    if (e.target && e.target.classList.contains('btn-toggle-revendedor')) {
+        const id = e.target.dataset.id;
+        const actual = e.target.dataset.actual === 'true';
+
+        fetch(`${API}/clientes/${id}/revendedor`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ es_revendedor: !actual }),
+        }).then(() => cargarClientes());
     }
 });
 
-function crearPedidoParaCliente(dni, nombre, direccion, contacto) {
+function crearPedidoParaCliente(dni, nombre, direccion, contacto, esRevendedor) {
     const modal = document.getElementById('modal-pedido');
     if (!modal) return;
 
@@ -1066,6 +1091,9 @@ function crearPedidoParaCliente(dni, nombre, direccion, contacto) {
     document.getElementById('pedido-cliente').value = nombre;
     document.getElementById('pedido-direccion').value = direccion;
     document.getElementById('pedido-contacto').value = contacto;
+
+    dniEsRevendedorActual = !!esRevendedor;
+    document.getElementById('aviso-revendedor').classList.toggle('hidden', !dniEsRevendedorActual);
 
     modal.classList.remove('hidden');
 }
