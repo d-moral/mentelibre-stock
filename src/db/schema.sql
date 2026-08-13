@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS clientes (
     nombre          VARCHAR(150) NOT NULL,
     direccion       VARCHAR(255),
     telefono        VARCHAR(150),
+    es_revendedor   BOOLEAN NOT NULL DEFAULT false,
     creado_en       TIMESTAMP NOT NULL DEFAULT NOW(),
     actualizado_en  TIMESTAMP NOT NULL DEFAULT NOW()
     );
