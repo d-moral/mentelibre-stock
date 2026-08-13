@@ -80,7 +80,19 @@ async function cargarProductos() {
     const res = await fetch(`${API}/productos`);
     productosCache = await res.json();
     actualizarFiltroSecciones();
+    actualizarResumenStock();
     renderizarProductos();
+}
+
+function actualizarResumenStock() {
+    const unidadesTotales = productosCache.reduce((acc, p) => acc + Number(p.stock_actual), 0);
+    const invertidoTotal = productosCache.reduce(
+        (acc, p) => acc + Number(p.precio_compra) * Number(p.stock_actual),
+        0
+    );
+
+    document.getElementById('resumen-unidades').textContent = unidadesTotales;
+    document.getElementById('resumen-invertido').textContent = formatearPrecio(invertidoTotal);
 }
 
 function actualizarFiltroSecciones() {
