@@ -662,12 +662,16 @@ function agregarItemPedido() {
     div.className = 'item-pedido';
 
     div.innerHTML = `
-    <select class="item-seccion">${opcionesSeccionesPedido()}</select>
-    <input type="text" class="item-busqueda" placeholder="Buscar producto...">
-    <select class="item-producto">${opcionesProductoFiltradas('', '')}</select>
-    <input type="number" class="item-cantidad" min="1" value="1">
-    <label class="checkbox-mayor"><input type="checkbox" class="item-es-mayor" ${dniEsRevendedorActual ? 'checked' : ''}> ¿Mayor?</label>
-    <button type="button" class="btn-peligro" onclick="this.parentElement.remove()">×</button>
+    <div class="fila-item-principal">
+      <select class="item-seccion">${opcionesSeccionesPedido()}</select>
+      <input type="text" class="item-busqueda" placeholder="Buscar producto...">
+      <select class="item-producto">${opcionesProductoFiltradas('', '')}</select>
+      <input type="number" class="item-cantidad" min="1" value="1">
+    </div>
+    <div class="fila-item-acciones">
+      <button type="button" class="btn-peligro" onclick="this.parentElement.parentElement.remove()">×</button>
+      <label class="checkbox-mayor"><input type="checkbox" class="item-es-mayor" ${dniEsRevendedorActual ? 'checked' : ''}> ¿Mayor?</label>
+    </div>
   `;
 
     const selectSeccion = div.querySelector('.item-seccion');
@@ -707,8 +711,8 @@ function agregarItemCombo() {
     div.innerHTML = `
     <select class="item-combo-set">${opciones}</select>
     <input type="number" class="item-combo-cantidad" min="1" value="1">
-    <label class="checkbox-mayor"><input type="checkbox" class="item-combo-es-mayor" ${dniEsRevendedorActual ? 'checked' : ''}> ¿Mayor?</label>
     <button type="button" class="btn-peligro" onclick="this.parentElement.remove()">×</button>
+    <label class="checkbox-mayor"><input type="checkbox" class="item-combo-es-mayor" ${dniEsRevendedorActual ? 'checked' : ''}> ¿Mayor?</label>
   `;
 
     itemsComboContainer.appendChild(div);
