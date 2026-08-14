@@ -339,6 +339,7 @@ formProducto.addEventListener('submit', async (e) => {
 let pedidosCache = [];
 let subEstadoPedidosActivo = 'pendiente';
 let fechaFiltroActiva = '';
+let granularidadActiva = 'dia';
 let paginaPedidos = 1;
 let busquedaPedidoActiva = '';
 
@@ -358,20 +359,20 @@ function calcularRangoFecha(fechaISO, granularidad) {
         desde.setDate(fecha.getDate() - diff);
         const hasta = new Date(desde);
         hasta.setDate(desde.getDate() + 6);
-        return { desde, hasta };
+        return { desde: fechaLocalISO(desde), hasta: fechaLocalISO(hasta) };
     }
 
     if (granularidad === 'mes') {
         const desde = new Date(fecha.getFullYear(), fecha.getMonth(), 1);
         const hasta = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0);
-        return { desde, hasta };
+        return { desde: fechaLocalISO(desde), hasta: fechaLocalISO(hasta) };
     }
 
-    return { desde: fecha, hasta: fecha };
+    return { desde: fechaISO, hasta: fechaISO };
 }
 
 function fechaEnRango(fechaPedidoISO, desde, hasta) {
-    const f = new Date(fechaLocalISO(fechaPedidoISO) + 'T00:00:00');
+    const f = fechaLocalISO(fechaPedidoISO);
     return f >= desde && f <= hasta;
 }
 
@@ -509,7 +510,7 @@ function actualizarGananciaDia() {
 
     textoRango.textContent = granularidadActiva === 'dia'
         ? ''
-        : `${desde.toLocaleDateString('es-AR')} al ${hasta.toLocaleDateString('es-AR')}`;
+        : `${formatearFecha(desde + 'T12:00:00')} al ${formatearFecha(hasta + 'T12:00:00')}`;
 
     const pedidosDelRango = pedidosCache.filter(p =>
         fechaEnRango(p.fecha, desde, hasta) &&
