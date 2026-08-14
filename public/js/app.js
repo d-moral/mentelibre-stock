@@ -1300,18 +1300,18 @@ document.getElementById('busqueda-global').addEventListener('input', (e) => {
     busquedaGlobalTimeout = setTimeout(async () => {
         try {
             const res = await fetch(`${API}/buscar?q=${encodeURIComponent(texto)}`);
-            const { productos, clientes } = await res.json();
-            renderizarResultadosBusquedaGlobal(productos, clientes);
+            const { productos, clientes, sets } = await res.json();
+            renderizarResultadosBusquedaGlobal(productos || [], clientes || [], sets || []);
         } catch (err) {
             console.error('Error en búsqueda global:', err);
         }
     }, 300);
 });
 
-function renderizarResultadosBusquedaGlobal(productos, clientes) {
+function renderizarResultadosBusquedaGlobal(productos, clientes, sets) {
     const contenedor = document.getElementById('busqueda-global-resultados');
 
-    if (productos.length === 0 && clientes.length === 0) {
+    if (productos.length === 0 && clientes.length === 0 && sets.length === 0) {
         contenedor.innerHTML = '<div class="busqueda-global-vacio">Sin resultados</div>';
         contenedor.classList.remove('hidden');
         return;
@@ -1328,10 +1328,19 @@ function renderizarResultadosBusquedaGlobal(productos, clientes) {
     `).join('');
     }
 
+    if (sets.length > 0) {
+        html += '<div class="busqueda-global-seccion">Sets / Combos</div>';
+        html += sets.map(s => `
+      <div class="busqueda-global-item" onclick="irASetDesdeBusqueda('${s.nombre.replace(/'/g, "\\'")}')">
+        ${s.nombre} <span class="busqueda-global-detalle">stock: ${s.stock_actual}</span>
+      </div>
+    `).join('');
+    }
+
     if (clientes.length > 0) {
         html += '<div class="busqueda-global-seccion">Clientes</div>';
         html += clientes.map(c => `
-      <div class="busqueda-global-item" onclick="irAClienteDesdeBusqueda('${c.dni}')">
+      <div class="busqueda-global-item" onclick="irAClienteDesdeBusqueda('${c.nombre.replace(/'/g, "\\'")}')">
         ${c.nombre} <span class="busqueda-global-detalle">DNI: ${c.dni}</span>
       </div>
     `).join('');
@@ -1355,10 +1364,24 @@ function irAProductoDesdeBusqueda(nombre) {
     cerrarBusquedaGlobal();
 }
 
-function irAClienteDesdeBusqueda(dni) {
+function irASetDesdeBusqueda(nombre) {
+    document.querySelector('.tab-btn[data-tab="combos"]').click();
+
+    const inputSet = document.getElementById('filtro-set-busqueda');
+    if (inputSet) {
+        inputSet.value = nombre;
+    }
+
+    paginaSets = 1;
+    renderizarSets();
+    cerrarBusquedaGlobal();
+}
+
+function irAClienteDesdeBusqueda(nombre) {
+    document.getElementById('filtro-cliente-busqueda').value = nombre;
     paginaClientes = 1;
-    document.getElementById('filtro-cliente-busqueda').value = dni;
     document.querySelector('.tab-btn[data-tab="clientes"]').click();
+    cargarClientes();
     cerrarBusquedaGlobal();
 }
 
