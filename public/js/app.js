@@ -975,7 +975,6 @@ document.getElementById('btn-nuevo-set').addEventListener('click', () => {
     document.getElementById('label-set-cantidad-armar').classList.remove('hidden');
     document.getElementById('bloque-set-items').classList.remove('hidden');
     setItemsContainer.innerHTML = '';
-    agregarSetItem();
     modalSet.classList.remove('hidden');
 });
 
@@ -987,7 +986,7 @@ document.getElementById('btn-agregar-set-item').addEventListener('click', agrega
 
 function agregarSetItem() {
     const div = document.createElement('div');
-    div.className = 'item-pedido';
+    div.className = 'item-set';
 
     const opciones = productosCache
         .map(p => {
@@ -1003,7 +1002,6 @@ function agregarSetItem() {
     <input type="number" class="set-item-cantidad" min="1" value="1">
     <button type="button" class="btn-peligro" onclick="this.parentElement.remove()">×</button>
   `;
-
     setItemsContainer.appendChild(div);
 }
 
@@ -1052,7 +1050,8 @@ formSet.addEventListener('submit', async (e) => {
             return;
         }
     } else {
-        const items = Array.from(setItemsContainer.querySelectorAll('.item-pedido')).map(div => ({
+        const items = Array.from(setItemsContainer.querySelectorAll('.item-set')).map(div => ({
+
             producto_id: Number(div.querySelector('.set-item-producto').value),
             cantidad: Number(div.querySelector('.set-item-cantidad').value),
         }));
