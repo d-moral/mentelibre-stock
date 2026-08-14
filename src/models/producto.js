@@ -115,4 +115,15 @@ async function masVendidos(limite = 5) {
     return result.rows;
 }
 
-module.exports = { getAll, getById, create, update, reponerStock, remove, estaDisponible, masVendidos };
+async function buscar(texto, limite = 5) {
+    const result = await pool.query(
+        `SELECT id, nombre, seccion, stock_actual
+     FROM productos
+     WHERE nombre ILIKE $1
+     ORDER BY nombre
+     LIMIT $2`,
+        [`%${texto}%`, limite]
+    );
+    return result.rows;
+}
+module.exports = { getAll, getById, create, update, reponerStock, remove, estaDisponible, masVendidos, buscar };

@@ -1179,3 +1179,89 @@ function crearPedidoParaCliente(dni, nombre, direccion, contacto, esRevendedor) 
 
     modal.classList.remove('hidden');
 }
+
+// ---------- BÚSQUEDA GLOBAL ----------
+let busquedaGlobalTimeout = null;
+
+document.getElementById('busqueda-global').addEventListener('input', (e) => {
+    clearTimeout(busquedaGlobalTimeout);
+    const texto = e.target.value.trim();
+    const resultados = document.getElementById('busqueda-global-resultados');
+
+    if (texto.length < 2) {
+        resultados.classList.add('hidden');
+        resultados.innerHTML = '';
+        return;
+    }
+
+    busquedaGlobalTimeout = setTimeout(async () => {
+        try {
+            const res = await fetch(`${API}/buscar?q=${encodeURIComponent(texto)}`);
+            const { productos, clientes } = await res.json();
+            renderizarResultadosBusquedaGlobal(productos, clientes);
+        } catch (err) {
+            console.error('Error en búsqueda global:', err);
+        }
+    }, 300);
+});
+
+function renderizarResultadosBusquedaGlobal(productos, clientes) {
+    const contenedor = document.getElementById('busqueda-global-resultados');
+
+    if (productos.length === 0 && clientes.length === 0) {
+        contenedor.innerHTML = '<div class="busqueda-global-vacio">Sin resultados</div>';
+        contenedor.classList.remove('hidden');
+        return;
+    }
+
+    let html = '';
+
+    if (productos.length > 0) {
+        html += '<div class="busqueda-global-seccion">Productos</div>';
+        html += productos.map(p => `
+      <div class="busqueda-global-item" onclick="irAProductoDesdeBusqueda('${p.nombre.replace(/'/g, "\\'")}')">
+        ${p.nombre} <span class="busqueda-global-detalle">${p.seccion || 'Sin sección'} · stock: ${p.stock_actual}</span>
+      </div>
+    `).join('');
+    }
+
+    if (clientes.length > 0) {
+        html += '<div class="busqueda-global-seccion">Clientes</div>';
+        html += clientes.map(c => `
+      <div class="busqueda-global-item" onclick="irAClienteDesdeBusqueda('${c.dni}')">
+        ${c.nombre} <span class="busqueda-global-detalle">DNI: ${c.dni}</span>
+      </div>
+    `).join('');
+    }
+
+    contenedor.innerHTML = html;
+    contenedor.classList.remove('hidden');
+}
+
+function cerrarBusquedaGlobal() {
+    document.getElementById('busqueda-global-resultados').classList.add('hidden');
+    document.getElementById('busqueda-global').value = '';
+}
+
+function irAProductoDesdeBusqueda(nombre) {
+    document.querySelector('.tab-btn[data-tab="stock"]').click();
+    document.getElementById('filtro-producto-busqueda').value = nombre;
+    busquedaProductoActiva = nombre.toLowerCase();
+    paginaProductos = 1;
+    renderizarProductos();
+    cerrarBusquedaGlobal();
+}
+
+function irAClienteDesdeBusqueda(dni) {
+    document.querySelector('.tab-btn[data-tab="clientes"]').click();
+    document.getElementById('filtro-cliente-busqueda').value = dni;
+    cargarClientes();
+    cerrarBusquedaGlobal();
+}
+
+document.addEventListener('click', (e) => {
+    const contenedor = document.querySelector('.busqueda-global-contenedor');
+    if (contenedor && !contenedor.contains(e.target)) {
+        document.getElementById('busqueda-global-resultados').classList.add('hidden');
+    }
+});
