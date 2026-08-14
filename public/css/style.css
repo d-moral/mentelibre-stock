@@ -602,3 +602,12 @@ th {
     color: #64748b;
     font-size: 0.85rem;
 }
+
+#filtro-pedido-busqueda {
+    margin-left: auto;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    min-width: 200px;
+}

@@ -339,8 +339,8 @@ formProducto.addEventListener('submit', async (e) => {
 let pedidosCache = [];
 let subEstadoPedidosActivo = 'pendiente';
 let fechaFiltroActiva = '';
-let granularidadActiva = 'dia';
 let paginaPedidos = 1;
+let busquedaPedidoActiva = '';
 
 async function cargarPedidos() {
     const res = await fetch(`${API}/pedidos`);
@@ -391,7 +391,12 @@ function renderizarPedidos() {
             })()
             : true;
 
-        return coincideEstado && coincideFecha;
+        const coincideBusqueda = busquedaPedidoActiva
+            ? (p.nombre_cliente || '').toLowerCase().includes(busquedaPedidoActiva) ||
+            (p.dni || '').toLowerCase().includes(busquedaPedidoActiva)
+            : true;
+
+        return coincideEstado && coincideFecha && coincideBusqueda;
     });
 
     const { pagina, totalPaginas, itemsPagina } = paginar(pedidosFiltrados, paginaPedidos);
@@ -791,6 +796,12 @@ document.querySelectorAll('.subtab-btn').forEach(btn => {
 
 document.getElementById('filtro-fecha').addEventListener('change', (e) => {
     fechaFiltroActiva = e.target.value;
+    paginaPedidos = 1;
+    renderizarPedidos();
+});
+
+document.getElementById('filtro-pedido-busqueda').addEventListener('input', (e) => {
+    busquedaPedidoActiva = e.target.value.trim().toLowerCase();
     paginaPedidos = 1;
     renderizarPedidos();
 });
