@@ -246,4 +246,16 @@ async function reponerStock(id, cantidadReponer) {
     }
 }
 
-module.exports = { crear, listar, getById, obtenerConItems, actualizar, cancelar, reponerStock };
+async function buscar(texto, limite = 5) {
+    const result = await pool.query(
+        `SELECT id, nombre, stock_actual
+         FROM sets
+         WHERE nombre ILIKE $1 AND COALESCE(activo, true) = true
+         ORDER BY nombre
+         LIMIT $2`,
+        [`%${texto}%`, limite]
+    );
+    return result.rows;
+}
+
+module.exports = { crear, listar, getById, obtenerConItems, actualizar, cancelar, reponerStock, buscar };
