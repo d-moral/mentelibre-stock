@@ -232,6 +232,28 @@ th {
     white-space: nowrap;
 }
 
+.campo-revendedor {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: -0.4rem 0 0.8rem;
+}
+
+#pedido-registrar-revendedor {
+    display: inline-block;
+    width: auto;
+    height: auto;
+    margin: 0 0.5rem 0 0;
+    padding: 0;
+}
+
+.campo-revendedor label {
+    display: inline;
+    margin: 0;
+    font-size: 0.85rem;
+    color: #475569;
+}
+
 .item-pedido select {
     flex: 1 1 140px;
     min-width: 100px;

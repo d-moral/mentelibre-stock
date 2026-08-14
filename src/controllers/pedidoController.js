@@ -27,7 +27,7 @@ async function obtenerUno(req, res) {
 
 async function crear(req, res) {
     try {
-        const { dni, nombre_cliente, direccion, contacto, items, metodo_pago, destinatario } = req.body;
+        const { dni, nombre_cliente, direccion, contacto, items, metodo_pago, destinatario, registrar_revendedor } = req.body;
 
         if (!dni) {
             return res.status(400).json({ error: 'dni es obligatorio' });
@@ -65,23 +65,26 @@ async function crear(req, res) {
                 });
             }
         }
-
         const clienteExistente = await Cliente.obtenerPorDni(dni);
         const yaEsRevendedor = clienteExistente ? clienteExistente.es_revendedor : false;
 
-        if (!yaEsRevendedor) {
-            const cantidadMayorista = items
-                .filter(item => item.es_mayor)
-                .reduce((acc, item) => acc + Number(item.cantidad), 0);
+        const cantidadMayorista = items
+            .filter(item => item.es_mayor)
+            .reduce((acc, item) => acc + Number(item.cantidad), 0);
 
-            if (cantidadMayorista > 0 && cantidadMayorista < 3) {
-                return res.status(400).json({
-                    error: 'Para aplicar precio mayorista en la primera compra, el cliente debe llevar al menos 3 productos por mayor en total',
-                });
-            }
+        if (!yaEsRevendedor && cantidadMayorista > 0 && cantidadMayorista < 3) {
+            return res.status(400).json({
+                error: 'Para aplicar precio mayorista en la primera compra, el cliente debe llevar al menos 3 productos por mayor en total',
+            });
         }
 
-        const pedido = await Pedido.crear({ dni, nombre_cliente, direccion, contacto, items, metodo_pago, destinatario });
+        if (registrar_revendedor && cantidadMayorista < 3) {
+            return res.status(400).json({
+                error: 'Para registrar al cliente como revendedor, la compra debe incluir al menos 3 productos por mayor en total',
+            });
+        }
+
+        const pedido = await Pedido.crear({ dni, nombre_cliente, direccion, contacto, items, metodo_pago, destinatario, registrar_revendedor });
 
         res.status(201).json(pedido);
     } catch (err) {

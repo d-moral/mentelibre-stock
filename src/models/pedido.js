@@ -1,7 +1,7 @@
 const pool = require('../db');
 const Cliente = require('./cliente');
 
-async function crear({ dni, nombre_cliente, direccion, contacto, items, metodo_pago, destinatario }) {
+async function crear({ dni, nombre_cliente, direccion, contacto, items, metodo_pago, destinatario, registrar_revendedor }) {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
@@ -69,11 +69,13 @@ async function crear({ dni, nombre_cliente, direccion, contacto, items, metodo_p
             });
         }
 
+        await client.query('ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS registrar_revendedor BOOLEAN DEFAULT false;');
+
         const { rows: pedidoRows } = await client.query(
-            `INSERT INTO pedidos (dni, nombre_cliente, direccion, contacto, total, ganancia_real, metodo_pago, destinatario, estado)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pendiente')
+            `INSERT INTO pedidos (dni, nombre_cliente, direccion, contacto, total, ganancia_real, metodo_pago, destinatario, estado, registrar_revendedor)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pendiente', $9)
              RETURNING *`,
-            [dni, nombre_cliente, direccion || null, contacto || null, total, ganancia_real, metodo_pago, destinatario || null]
+            [dni, nombre_cliente, direccion || null, contacto || null, total, ganancia_real, metodo_pago, destinatario || null, !!registrar_revendedor]
         );
 
         const nuevoPedido = pedidoRows[0];
@@ -179,16 +181,7 @@ async function cambiarEstado(id, nuevoEstado) {
 
             pedido.cliente_id = clienteId;
 
-            const { rows: itemsMayor } = await client.query(
-                `SELECT COALESCE(SUM(cantidad), 0) AS total_mayor
-                 FROM pedido_items
-                 WHERE pedido_id = $1 AND es_mayor = true`,
-                [id]
-            );
-
-            const cantidadMayorista = Number(itemsMayor[0].total_mayor);
-
-            if (cantidadMayorista >= 3) {
+            if (pedido.registrar_revendedor) {
                 await client.query(
                     `UPDATE clientes SET es_revendedor = true, actualizado_en = NOW()
                      WHERE id = $1 AND es_revendedor = false`,
