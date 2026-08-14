@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS pedidos (
     ganancia_real   NUMERIC(10,2) NOT NULL DEFAULT 0,
     metodo_pago     VARCHAR(20) NOT NULL DEFAULT 'efectivo',
     destinatario    VARCHAR(50),
+    registrar_revendedor BOOLEAN NOT NULL DEFAULT false,
     cliente_id      INTEGER REFERENCES clientes(id) ON DELETE SET NULL
     );
 

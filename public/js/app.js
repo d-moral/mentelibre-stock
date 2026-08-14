@@ -697,6 +697,7 @@ formPedido.addEventListener('submit', async (e) => {
         contacto: document.getElementById('pedido-contacto').value.trim() || null,
         metodo_pago,
         destinatario: destinatario || null,
+        registrar_revendedor: document.getElementById('pedido-registrar-revendedor').checked,
         items,
     };
 
