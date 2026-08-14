@@ -477,8 +477,8 @@ async function toggleDetallePedido(id) {
     }).join('');
 
     const encabezado = esCancelado
-        ? '<tr><th>Producto</th><th>Cant. cancelada</th></tr>'
-        : '<tr><th>Producto</th><th>Cant.</th><th>Ganancia</th></tr>';
+        ? '<tr><th>Producto</th><th>Cantidad</th></tr>'
+        : '<tr><th>Producto</th><th>Cantidad</th><th>Ganancia</th></tr>';
 
     const filaDetalle = document.createElement('tr');
     filaDetalle.id = `detalle-pedido-${id}`;
@@ -933,7 +933,7 @@ async function toggleDetalleSet(id) {
     <td colspan="6">
       <p class="detalle-descripcion">${set.descripcion || 'Sin descripción'}</p>
       <table class="detalle-ganancia-items">
-        <thead><tr><th>Producto</th><th>Cant.</th></tr></thead>
+        <thead><tr><th>Producto</th><th>Cantidad</th></tr></thead>
         <tbody>${filasComponentes}</tbody>
       </table>
     </td>
@@ -1210,7 +1210,7 @@ async function toggleDetalleCliente(id) {
     <td colspan="7">
       <h4>Más comprado</h4>
       <table class="detalle-ganancia-items">
-        <thead><tr><th>Producto</th><th>Cantidad total</th></tr></thead>
+        <thead><tr><th>Producto</th><th>Cantidad</th></tr></thead>
         <tbody>${filasTop}</tbody>
       </table>
       <h4>Historial de pedidos</h4>
