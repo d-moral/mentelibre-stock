@@ -579,6 +579,8 @@ async function editarPedido(id) {
     document.getElementById('pedido-contacto').value = pedido.contacto || '';
     document.getElementById('pedido-metodo-pago').value = pedido.metodo_pago || '';
     document.getElementById('pedido-registrar-revendedor').checked = !!pedido.registrar_revendedor;
+    document.getElementById('label-registrar-revendedor').classList.remove('hidden');
+    document.getElementById('pedido-registrar-revendedor').checked = !!pedido.registrar_revendedor;
 
     const labelDestinatario = document.getElementById('label-destinatario');
     if (pedido.metodo_pago === 'transferencia') {
@@ -618,6 +620,7 @@ document.getElementById('btn-nuevo-pedido').addEventListener('click', () => {
     itemsContainer.innerHTML = '';
     itemsComboContainer.innerHTML = '';
     document.getElementById('label-destinatario').classList.add('hidden');
+    document.getElementById('label-registrar-revendedor').classList.remove('hidden');
     dniEsRevendedorActual = false;
     document.getElementById('aviso-revendedor').classList.add('hidden');
     pedidoEditandoId = null;
@@ -1237,13 +1240,12 @@ function crearPedidoParaCliente(dni, nombre, direccion, contacto, esRevendedor) 
     const modal = document.getElementById('modal-pedido');
     if (!modal) return;
 
-    // Reinicia el formulario y limpia las listas de productos y combos
     formPedido.reset();
     itemsContainer.innerHTML = '';
     itemsComboContainer.innerHTML = '';
     document.getElementById('label-destinatario').classList.add('hidden');
+    document.getElementById('label-registrar-revendedor').classList.add('hidden');
 
-    // Pre-completa los datos del cliente
     document.getElementById('pedido-dni').value = dni;
     document.getElementById('pedido-cliente').value = nombre;
     document.getElementById('pedido-direccion').value = direccion;
