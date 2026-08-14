@@ -691,6 +691,21 @@ function agregarItemPedido() {
     itemsContainer.appendChild(div);
 }
 
+function opcionesCombosFiltrados(busqueda) {
+    const texto = (busqueda || '').trim().toLowerCase();
+
+    return setsCache
+        .filter(s => s.activo)
+        .filter(s => !texto || s.nombre.toLowerCase().includes(texto))
+        .map(s => {
+            const noDisponible = s.stock_actual <= 0;
+            return `<option value="${s.id}" ${noDisponible ? 'disabled' : ''}>
+        ${s.nombre} ${noDisponible ? '(sin stock)' : ''}
+      </option>`;
+        })
+        .join('');
+}
+
 function agregarItemCombo() {
     const combosDisponibles = setsCache.filter(s => s.activo);
 
@@ -702,21 +717,20 @@ function agregarItemCombo() {
     const div = document.createElement('div');
     div.className = 'item-pedido item-combo';
 
-    const opciones = combosDisponibles
-        .map(s => {
-            const noDisponible = s.stock_actual <= 0;
-            return `<option value="${s.id}" ${noDisponible ? 'disabled' : ''}>
-        ${s.nombre} ${noDisponible ? '(sin stock)' : ''}
-      </option>`;
-        })
-        .join('');
-
     div.innerHTML = `
-    <select class="item-combo-set">${opciones}</select>
+    <input type="text" class="item-busqueda item-combo-busqueda" placeholder="Buscar set...">
     <input type="number" class="item-combo-cantidad" min="1" value="1">
+    <select class="item-combo-set">${opcionesCombosFiltrados('')}</select>
     <button type="button" class="btn-peligro" onclick="this.parentElement.remove()">×</button>
     <label class="checkbox-mayor"><input type="checkbox" class="item-combo-es-mayor" ${dniEsRevendedorActual ? 'checked' : ''}> ¿Mayor?</label>
   `;
+
+    const inputBusqueda = div.querySelector('.item-combo-busqueda');
+    const selectCombo = div.querySelector('.item-combo-set');
+
+    inputBusqueda.addEventListener('input', () => {
+        selectCombo.innerHTML = opcionesCombosFiltrados(inputBusqueda.value);
+    });
 
     itemsComboContainer.appendChild(div);
 }
@@ -850,7 +864,12 @@ function renderizarSets() {
     const tbody = document.getElementById('tabla-sets');
     tbody.innerHTML = '';
 
-    const setsActivos = setsCache.filter(s => s.activo);
+    const texto = (document.getElementById('filtro-set-busqueda').value || '').trim().toLowerCase();
+
+    const setsActivos = setsCache
+        .filter(s => s.activo)
+        .filter(s => !texto || s.nombre.toLowerCase().includes(texto));
+
     const { pagina, totalPaginas, itemsPagina } = paginar(setsActivos, paginaSets);
     paginaSets = pagina;
 
@@ -986,22 +1005,29 @@ document.getElementById('btn-agregar-set-item').addEventListener('click', agrega
 
 function agregarSetItem() {
     const div = document.createElement('div');
-    div.className = 'item-set';
-
-    const opciones = productosCache
-        .map(p => {
-            const noDisponible = p.stock_actual <= 0;
-            return `<option value="${p.id}" ${noDisponible ? 'disabled' : ''}>
-        ${p.nombre} ${noDisponible ? '(sin stock)' : ''}
-      </option>`;
-        })
-        .join('');
+    div.className = 'item-pedido';
 
     div.innerHTML = `
-    <select class="set-item-producto">${opciones}</select>
-    <input type="number" class="set-item-cantidad" min="1" value="1">
-    <button type="button" class="btn-peligro" onclick="this.parentElement.remove()">×</button>
+    <div class="fila-item-principal">
+      <select class="item-seccion">${opcionesSeccionesPedido()}</select>
+      <input type="text" class="item-busqueda" placeholder="Buscar producto...">
+      <select class="set-item-producto">${opcionesProductoFiltradas('', '')}</select>
+      <input type="number" class="set-item-cantidad" min="1" value="1">
+      <button type="button" class="btn-peligro" onclick="this.parentElement.parentElement.remove()">×</button>
+    </div>
   `;
+
+    const selectSeccion = div.querySelector('.item-seccion');
+    const inputBusqueda = div.querySelector('.item-busqueda');
+    const selectProducto = div.querySelector('.set-item-producto');
+
+    const refiltrar = () => {
+        selectProducto.innerHTML = opcionesProductoFiltradas(selectSeccion.value, inputBusqueda.value);
+    };
+
+    selectSeccion.addEventListener('change', refiltrar);
+    inputBusqueda.addEventListener('input', refiltrar);
+
     setItemsContainer.appendChild(div);
 }
 
@@ -1050,7 +1076,7 @@ formSet.addEventListener('submit', async (e) => {
             return;
         }
     } else {
-        const items = Array.from(setItemsContainer.querySelectorAll('.item-set')).map(div => ({
+        const items = Array.from(setItemsContainer.querySelectorAll('.item-pedido')).map(div => ({
 
             producto_id: Number(div.querySelector('.set-item-producto').value),
             cantidad: Number(div.querySelector('.set-item-cantidad').value),
@@ -1322,6 +1348,10 @@ function cerrarBusquedaGlobal() {
 function irAProductoDesdeBusqueda(nombre) {
     document.querySelector('.tab-btn[data-tab="stock"]').click();
     document.getElementById('filtro-producto-busqueda').value = nombre;
+    document.getElementById('filtro-set-busqueda').addEventListener('input', () => {
+        paginaSets = 1;
+        renderizarSets();
+    });
     busquedaProductoActiva = nombre.toLowerCase();
     paginaProductos = 1;
     renderizarProductos();
