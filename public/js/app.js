@@ -1329,7 +1329,7 @@ function renderizarResultadosBusquedaGlobal(productos, clientes, sets) {
     }
 
     if (sets.length > 0) {
-        html += '<div class="busqueda-global-seccion">Sets / Combos</div>';
+        html += '<div class="busqueda-global-seccion">Sets</div>';
         html += sets.map(s => `
       <div class="busqueda-global-item" onclick="irASetDesdeBusqueda('${s.nombre.replace(/'/g, "\\'")}')">
         ${s.nombre} <span class="busqueda-global-detalle">stock: ${s.stock_actual}</span>
