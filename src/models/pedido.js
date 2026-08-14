@@ -259,4 +259,138 @@ async function cancelar(id) {
     }
 }
 
-module.exports = { crear, listar, obtenerConItems, cambiarEstado, cancelar };
+async function actualizar(id, { dni, nombre_cliente, direccion, contacto, items, metodo_pago, destinatario, registrar_revendedor }) {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        const { rows: pedidoRows } = await client.query('SELECT * FROM pedidos WHERE id = $1', [id]);
+        const pedidoExistente = pedidoRows[0];
+
+        if (!pedidoExistente) {
+            throw new Error('Pedido no encontrado');
+        }
+        if (pedidoExistente.estado !== 'pendiente') {
+            throw new Error('Solo se pueden editar pedidos pendientes');
+        }
+
+        // Devuelve el stock de los items actuales antes de reemplazarlos
+        const { rows: itemsActuales } = await client.query(
+            'SELECT * FROM pedido_items WHERE pedido_id = $1',
+            [id]
+        );
+
+        for (const item of itemsActuales) {
+            if (item.producto_id) {
+                await client.query('UPDATE productos SET stock_actual = stock_actual + $1 WHERE id = $2', [item.cantidad, item.producto_id]);
+            } else if (item.set_id) {
+                await client.query('UPDATE sets SET stock_actual = stock_actual + $1 WHERE id = $2', [item.cantidad, item.set_id]);
+            }
+        }
+
+        await client.query('DELETE FROM pedido_items WHERE pedido_id = $1', [id]);
+
+        // Vuelve a calcular precios, stock y totales con los items nuevos (misma lógica que crear())
+        let total = 0;
+        let ganancia_real = 0;
+        const itemsProcesados = [];
+
+        for (const item of items) {
+            let precioUnitario = 0;
+            let precioCompra = 0;
+            let productoNombre = '';
+            let setNombre = null;
+
+            if (item.producto_id) {
+                const { rows } = await client.query('SELECT * FROM productos WHERE id = $1', [item.producto_id]);
+                if (rows.length === 0) throw new Error(`Producto ${item.producto_id} no existe`);
+                const prod = rows[0];
+
+                if (prod.stock_actual < item.cantidad) {
+                    throw new Error(`Stock insuficiente para el producto: ${prod.nombre}`);
+                }
+
+                precioUnitario = item.es_mayor
+                    ? (prod.precio_venta_mayor || prod.precio_venta)
+                    : prod.precio_venta;
+                precioCompra = prod.precio_compra || 0;
+                productoNombre = prod.nombre;
+
+                await client.query('UPDATE productos SET stock_actual = stock_actual - $1 WHERE id = $2', [item.cantidad, item.producto_id]);
+            } else if (item.set_id) {
+                const { rows } = await client.query('SELECT * FROM sets WHERE id = $1', [item.set_id]);
+                if (rows.length === 0) throw new Error(`Set ${item.set_id} no existe`);
+                const combo = rows[0];
+
+                if (combo.stock_actual < item.cantidad) {
+                    throw new Error(`Stock insuficiente para el set: ${combo.nombre}`);
+                }
+
+                precioUnitario = item.es_mayor
+                    ? (combo.precio_venta_mayor || combo.precio_venta)
+                    : combo.precio_venta;
+                precioCompra = combo.costo_unitario || 0;
+                setNombre = combo.nombre;
+                productoNombre = combo.nombre;
+
+                await client.query('UPDATE sets SET stock_actual = stock_actual - $1 WHERE id = $2', [item.cantidad, item.set_id]);
+            }
+
+            total += precioUnitario * item.cantidad;
+            ganancia_real += (precioUnitario - precioCompra) * item.cantidad;
+
+            itemsProcesados.push({
+                producto_id: item.producto_id || null,
+                set_id: item.set_id || null,
+                producto_nombre: productoNombre,
+                set_nombre: setNombre,
+                cantidad: item.cantidad,
+                precio_unitario: precioUnitario,
+                precio_compra_unitario: precioCompra,
+                tipo: item.producto_id ? 'producto' : 'set',
+                es_mayor: !!item.es_mayor
+            });
+        }
+
+        const { rows: pedidoActualizadoRows } = await client.query(
+            `UPDATE pedidos
+             SET dni = $1, nombre_cliente = $2, direccion = $3, contacto = $4,
+                 total = $5, ganancia_real = $6, metodo_pago = $7, destinatario = $8,
+                 registrar_revendedor = $9
+             WHERE id = $10
+             RETURNING *`,
+            [dni, nombre_cliente, direccion || null, contacto || null, total, ganancia_real, metodo_pago, destinatario || null, !!registrar_revendedor, id]
+        );
+
+        const pedidoActualizado = pedidoActualizadoRows[0];
+
+        for (const item of itemsProcesados) {
+            await client.query(
+                `INSERT INTO pedido_items (pedido_id, producto_id, set_id, producto_nombre, set_nombre, cantidad, precio_unitario, precio_compra_unitario, tipo, es_mayor)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+                [
+                    id,
+                    item.producto_id,
+                    item.set_id,
+                    item.producto_nombre,
+                    item.set_nombre,
+                    item.cantidad,
+                    item.precio_unitario,
+                    item.precio_compra_unitario,
+                    item.tipo,
+                    item.es_mayor
+                ]
+            );
+        }
+
+        await client.query('COMMIT');
+        return pedidoActualizado;
+    } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+    } finally {
+        client.release();
+    }
+}
+
+module.exports = { crear, listar, obtenerConItems, cambiarEstado, cancelar, actualizar };

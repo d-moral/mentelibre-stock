@@ -420,6 +420,7 @@ function renderizarPedidos() {
        <a href="${API}/pedidos/${p.id}/boleta" target="_blank">
         <button class="btn-secundario" type="button">Boleta</button>
        </a>
+        ${esPendiente ? `<button class="btn-secundario" onclick="editarPedido(${p.id})">Editar</button>` : ''}
         ${esPendiente ? `<button class="btn-peligro" onclick="cancelarPedido(${p.id})">Cancelar</button>` : ''}
         ${(esRealizado || esCancelado) ? `<button class="btn-secundario" onclick="toggleDetallePedido(${p.id})">⋮</button>` : ''}
       </td>
@@ -557,6 +558,55 @@ const itemsContainer = document.getElementById('pedido-items');
 const itemsComboContainer = document.getElementById('pedido-items-combos');
 
 let dniEsRevendedorActual = false;
+let pedidoEditandoId = null;
+
+async function editarPedido(id) {
+    const res = await fetch(`${API}/pedidos/${id}`);
+    const pedido = await res.json();
+
+    formPedido.reset();
+    itemsContainer.innerHTML = '';
+    itemsComboContainer.innerHTML = '';
+
+    document.getElementById('pedido-dni').value = pedido.dni || '';
+    document.getElementById('pedido-cliente').value = pedido.nombre_cliente || '';
+    document.getElementById('pedido-direccion').value = pedido.direccion || '';
+    document.getElementById('pedido-contacto').value = pedido.contacto || '';
+    document.getElementById('pedido-metodo-pago').value = pedido.metodo_pago || '';
+    document.getElementById('pedido-registrar-revendedor').checked = !!pedido.registrar_revendedor;
+
+    const labelDestinatario = document.getElementById('label-destinatario');
+    if (pedido.metodo_pago === 'transferencia') {
+        labelDestinatario.classList.remove('hidden');
+        document.getElementById('pedido-destinatario').value = pedido.destinatario || '';
+    } else {
+        labelDestinatario.classList.add('hidden');
+    }
+
+    dniEsRevendedorActual = false;
+    document.getElementById('aviso-revendedor').classList.add('hidden');
+
+    for (const item of pedido.items) {
+        if (item.set_id) {
+            agregarItemCombo();
+            const divCombo = itemsComboContainer.lastElementChild;
+            divCombo.querySelector('.item-combo-set').value = item.set_id;
+            divCombo.querySelector('.item-combo-cantidad').value = item.cantidad;
+            divCombo.querySelector('.item-combo-es-mayor').checked = item.es_mayor;
+        } else {
+            agregarItemPedido();
+            const divProducto = itemsContainer.lastElementChild;
+            divProducto.querySelector('.item-producto').value = item.producto_id;
+            divProducto.querySelector('.item-cantidad').value = item.cantidad;
+            divProducto.querySelector('.item-es-mayor').checked = item.es_mayor;
+        }
+    }
+
+    pedidoEditandoId = id;
+    document.querySelector('#modal-pedido h3').textContent = 'Editar pedido';
+    document.querySelector('#modal-pedido button[type="submit"]').textContent = 'Guardar cambios';
+    modalPedido.classList.remove('hidden');
+}
 
 document.getElementById('btn-nuevo-pedido').addEventListener('click', () => {
     formPedido.reset();
@@ -565,6 +615,9 @@ document.getElementById('btn-nuevo-pedido').addEventListener('click', () => {
     document.getElementById('label-destinatario').classList.add('hidden');
     dniEsRevendedorActual = false;
     document.getElementById('aviso-revendedor').classList.add('hidden');
+    pedidoEditandoId = null;
+    document.querySelector('#modal-pedido h3').textContent = 'Nuevo pedido';
+    document.querySelector('#modal-pedido button[type="submit"]').textContent = 'Crear pedido';
     modalPedido.classList.remove('hidden');
 });
 
@@ -701,8 +754,11 @@ formPedido.addEventListener('submit', async (e) => {
         items,
     };
 
-    const res = await fetch(`${API}/pedidos`, {
-        method: 'POST',
+    const url = pedidoEditandoId ? `${API}/pedidos/${pedidoEditandoId}` : `${API}/pedidos`;
+    const metodo = pedidoEditandoId ? 'PUT' : 'POST';
+
+    const res = await fetch(url, {
+        method: metodo,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(datos),
     });
@@ -712,6 +768,10 @@ formPedido.addEventListener('submit', async (e) => {
         alert(`Error: ${error.error}`);
         return;
     }
+
+    pedidoEditandoId = null;
+    document.querySelector('#modal-pedido h3').textContent = 'Nuevo pedido';
+    document.querySelector('#modal-pedido button[type="submit"]').textContent = 'Crear pedido';
 
     modalPedido.classList.add('hidden');
     cargarPedidos();

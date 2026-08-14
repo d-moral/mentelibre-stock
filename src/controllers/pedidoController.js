@@ -93,6 +93,71 @@ async function crear(req, res) {
     }
 }
 
+async function actualizar(req, res) {
+    try {
+        const { dni, nombre_cliente, direccion, contacto, items, metodo_pago, destinatario, registrar_revendedor } = req.body;
+
+        if (!dni || !nombre_cliente || !metodo_pago) {
+            return res.status(400).json({ error: 'dni, nombre_cliente y metodo_pago son obligatorios' });
+        }
+        if (!Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'Debe incluir al menos un item' });
+        }
+
+        for (const item of items) {
+            const tieneProducto = !!item.producto_id;
+            const tieneSet = !!item.set_id;
+
+            if (tieneProducto === tieneSet) {
+                return res.status(400).json({
+                    error: 'Cada item debe tener producto_id O set_id (uno solo), y cantidad mayor a 0',
+                });
+            }
+            if (!item.cantidad || item.cantidad <= 0) {
+                return res.status(400).json({
+                    error: 'Cada item debe tener cantidad mayor a 0',
+                });
+            }
+            if (item.es_mayor !== undefined && typeof item.es_mayor !== 'boolean') {
+                return res.status(400).json({
+                    error: 'es_mayor debe ser true o false',
+                });
+            }
+        }
+
+        const clienteExistente = await Cliente.obtenerPorDni(dni);
+        const yaEsRevendedor = clienteExistente ? clienteExistente.es_revendedor : false;
+
+        const cantidadMayorista = items
+            .filter(item => item.es_mayor)
+            .reduce((acc, item) => acc + Number(item.cantidad), 0);
+
+        if (!yaEsRevendedor && cantidadMayorista > 0 && cantidadMayorista < 3) {
+            return res.status(400).json({
+                error: 'Para aplicar precio mayorista en la primera compra, el cliente debe llevar al menos 3 productos por mayor en total',
+            });
+        }
+
+        if (registrar_revendedor && cantidadMayorista < 3) {
+            return res.status(400).json({
+                error: 'Para registrar al cliente como revendedor, la compra debe incluir al menos 3 productos por mayor en total',
+            });
+        }
+
+        const pedido = await Pedido.actualizar(req.params.id, { dni, nombre_cliente, direccion, contacto, items, metodo_pago, destinatario, registrar_revendedor });
+        res.json(pedido);
+    } catch (err) {
+        console.error(err);
+        if (err.message === 'Pedido no encontrado') {
+            return res.status(404).json({ error: err.message });
+        }
+        if (err.message === 'Solo se pueden editar pedidos pendientes') {
+            return res.status(400).json({ error: err.message });
+        }
+        res.status(500).json({ error: err.message || 'Error al actualizar el pedido' });
+    }
+}
+
 async function cambiarEstado(req, res) {
     try {
         const { estado } = req.body;
@@ -131,4 +196,4 @@ async function descargarBoleta(req, res) {
     }
 }
 
-module.exports = { listar, obtenerUno, crear, cambiarEstado, descargarBoleta };
+module.exports = { listar, obtenerUno, crear, cambiarEstado, descargarBoleta, actualizar };
