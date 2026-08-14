@@ -1191,7 +1191,7 @@ async function toggleDetalleCliente(id) {
     const { pedidos, topProductos } = await res.json();
 
     const filasTop = topProductos.length > 0
-        ? topProductos.map((p, i) => `<tr><td>${i + 1}. ${p.nombre}</td><td>${p.total_comprado}</td></tr>`).join('')
+        ? topProductos.map(p => `<tr><td>${p.nombre}</td><td>${p.total_comprado}</td></tr>`).join('')
         : '<tr><td colspan="2">Sin compras vendidas todavía</td></tr>';
 
     const filasPedidos = pedidos.length > 0
