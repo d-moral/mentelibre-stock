@@ -1044,7 +1044,6 @@ function renderizarClientes(clientes, paginacion) {
             <td>${c.nombre || '-'}</td>
             <td>${c.direccion || '-'}</td>
             <td>${c.telefono || '-'}</td>
-            <td><span class="badge">${c.tipo_compra || 'Sin compras'}</span></td>
             <td>${badgeRevendedor}</td>
             <td class="total-gastado-celda"><strong>${formatearPrecio(c.total_gastado)}</strong> <small>(${pedidosTexto})</small></td>
             <td class="acciones-cell">
@@ -1105,7 +1104,7 @@ async function toggleDetalleCliente(id) {
     filaDetalle.id = `detalle-cliente-${id}`;
     filaDetalle.className = 'fila-detalle-cliente';
     filaDetalle.innerHTML = `
-    <td colspan="8">
+    <td colspan="7">
       <h4>Más comprado</h4>
       <table class="detalle-ganancia-items">
         <thead><tr><th>Producto</th><th>Cantidad total</th></tr></thead>
