@@ -1349,10 +1349,6 @@ function cerrarBusquedaGlobal() {
 function irAProductoDesdeBusqueda(nombre) {
     document.querySelector('.tab-btn[data-tab="stock"]').click();
     document.getElementById('filtro-producto-busqueda').value = nombre;
-    document.getElementById('filtro-set-busqueda').addEventListener('input', () => {
-        paginaSets = 1;
-        renderizarSets();
-    });
     busquedaProductoActiva = nombre.toLowerCase();
     paginaProductos = 1;
     renderizarProductos();
@@ -1360,9 +1356,9 @@ function irAProductoDesdeBusqueda(nombre) {
 }
 
 function irAClienteDesdeBusqueda(dni) {
-    document.querySelector('.tab-btn[data-tab="clientes"]').click();
+    paginaClientes = 1;
     document.getElementById('filtro-cliente-busqueda').value = dni;
-    cargarClientes();
+    document.querySelector('.tab-btn[data-tab="clientes"]').click();
     cerrarBusquedaGlobal();
 }
 
