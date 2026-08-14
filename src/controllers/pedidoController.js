@@ -65,24 +65,6 @@ async function crear(req, res) {
                 });
             }
         }
-        const clienteExistente = await Cliente.obtenerPorDni(dni);
-        const yaEsRevendedor = clienteExistente ? clienteExistente.es_revendedor : false;
-
-        const cantidadMayorista = items
-            .filter(item => item.es_mayor)
-            .reduce((acc, item) => acc + Number(item.cantidad), 0);
-
-        if (!yaEsRevendedor && cantidadMayorista > 0 && cantidadMayorista < 3) {
-            return res.status(400).json({
-                error: 'Para aplicar precio mayorista en la primera compra, el cliente debe llevar al menos 3 productos por mayor en total',
-            });
-        }
-
-        if (registrar_revendedor && cantidadMayorista < 3) {
-            return res.status(400).json({
-                error: 'Para registrar al cliente como revendedor, la compra debe incluir al menos 3 productos por mayor en total',
-            });
-        }
 
         const pedido = await Pedido.crear({ dni, nombre_cliente, direccion, contacto, items, metodo_pago, destinatario, registrar_revendedor });
 
@@ -123,25 +105,6 @@ async function actualizar(req, res) {
                     error: 'es_mayor debe ser true o false',
                 });
             }
-        }
-
-        const clienteExistente = await Cliente.obtenerPorDni(dni);
-        const yaEsRevendedor = clienteExistente ? clienteExistente.es_revendedor : false;
-
-        const cantidadMayorista = items
-            .filter(item => item.es_mayor)
-            .reduce((acc, item) => acc + Number(item.cantidad), 0);
-
-        if (!yaEsRevendedor && cantidadMayorista > 0 && cantidadMayorista < 3) {
-            return res.status(400).json({
-                error: 'Para aplicar precio mayorista en la primera compra, el cliente debe llevar al menos 3 productos por mayor en total',
-            });
-        }
-
-        if (registrar_revendedor && cantidadMayorista < 3) {
-            return res.status(400).json({
-                error: 'Para registrar al cliente como revendedor, la compra debe incluir al menos 3 productos por mayor en total',
-            });
         }
 
         const pedido = await Pedido.actualizar(req.params.id, { dni, nombre_cliente, direccion, contacto, items, metodo_pago, destinatario, registrar_revendedor });
