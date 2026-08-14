@@ -149,6 +149,19 @@ class Cliente {
 
         return { pedidos, topProductos };
     }
+
+    static async buscar(texto, limite = 5) {
+        const { rows } = await pool.query(
+            `SELECT id, dni, nombre
+             FROM clientes
+             WHERE nombre ILIKE $1 OR dni ILIKE $1
+             ORDER BY nombre
+             LIMIT $2`,
+            [`%${texto}%`, limite]
+        );
+        return rows;
+    }
 }
+
 
 module.exports = Cliente;
