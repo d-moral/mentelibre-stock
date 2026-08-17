@@ -664,3 +664,14 @@ th {
 .item-combo .checkbox-mayor {
     margin-left: auto;
 }
+
+.aviso-stock-item {
+    width: 100%;
+    color: #dc2626;
+    font-size: 0.8rem;
+    margin-top: -0.3rem;
+}
+
+.aviso-stock-item.oculto {
+    display: none;
+}
