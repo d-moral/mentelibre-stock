@@ -670,8 +670,9 @@ function opcionesProductoFiltradas(seccion, busqueda) {
         .filter(p => !texto || p.nombre.toLowerCase().includes(texto))
         .map(p => {
             const noDisponible = p.stock_actual <= 0;
+            const etiquetaStock = noDisponible ? '(sin stock)' : `(stock: ${p.stock_actual})`;
             return `<option value="${p.id}" ${noDisponible ? 'disabled' : ''}>
-        ${p.nombre} ${noDisponible ? '(sin stock)' : ''}
+        ${p.nombre} ${etiquetaStock}
       </option>`;
         })
         .join('');
@@ -743,8 +744,9 @@ function opcionesCombosFiltrados(busqueda) {
         .filter(s => !texto || s.nombre.toLowerCase().includes(texto))
         .map(s => {
             const noDisponible = s.stock_actual <= 0;
+            const etiquetaStock = noDisponible ? '(sin stock)' : `(stock: ${s.stock_actual})`;
             return `<option value="${s.id}" ${noDisponible ? 'disabled' : ''}>
-        ${s.nombre} ${noDisponible ? '(sin stock)' : ''}
+        ${s.nombre} ${etiquetaStock}
       </option>`;
         })
         .join('');
