@@ -341,6 +341,26 @@ th {
     background: #f1f5f9;
 }
 
+.subtab-btn-stock {
+    background: white;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.subtab-btn-stock.active {
+    background: #1e293b;
+    border-color: #1e293b;
+    color: white;
+}
+
+.subtab-btn-stock:hover:not(.active) {
+    background: #f1f5f9;
+}
+
 .filtro-fecha {
     display: flex;
     align-items: center;

@@ -71,6 +71,7 @@ window.addEventListener('DOMContentLoaded', () => {
 let productosCache = [];
 let paginaProductos = 1;
 let busquedaProductoActiva = '';
+let filtroDisponibilidadActivo = '';
 
 document.getElementById('filtro-seccion').addEventListener('change', () => {
     paginaProductos = 1;
@@ -81,6 +82,16 @@ document.getElementById('filtro-producto-busqueda').addEventListener('input', (e
     busquedaProductoActiva = e.target.value.trim().toLowerCase();
     paginaProductos = 1;
     renderizarProductos();
+});
+
+document.querySelectorAll('.subtab-btn-stock').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.subtab-btn-stock').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        filtroDisponibilidadActivo = btn.dataset.disponibilidad;
+        paginaProductos = 1;
+        renderizarProductos();
+    });
 });
 
 async function cargarProductos() {
@@ -144,7 +155,12 @@ function renderizarProductos() {
     const seccionElegida = document.getElementById('filtro-seccion').value;
     const productosFiltrados = productosCache
         .filter(p => !seccionElegida || p.seccion === seccionElegida)
-        .filter(p => !busquedaProductoActiva || p.nombre.toLowerCase().includes(busquedaProductoActiva));
+        .filter(p => !busquedaProductoActiva || p.nombre.toLowerCase().includes(busquedaProductoActiva))
+        .filter(p => {
+            if (!filtroDisponibilidadActivo) return true;
+            const disponible = p.stock_actual > 0;
+            return filtroDisponibilidadActivo === 'disponible' ? disponible : !disponible;
+        });
 
     const { pagina, totalPaginas, itemsPagina } = paginar(productosFiltrados, paginaProductos);
     paginaProductos = pagina;
