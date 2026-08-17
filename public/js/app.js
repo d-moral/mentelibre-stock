@@ -661,6 +661,13 @@ function opcionesProductoFiltradas(seccion, busqueda) {
         .join('');
 }
 
+function actualizarBotonCrearPedido() {
+    const btnSubmit = document.querySelector('#modal-pedido button[type="submit"]');
+    const hayStockInsuficiente = document.querySelectorAll('.aviso-stock-item:not(.oculto)').length > 0;
+    btnSubmit.disabled = hayStockInsuficiente;
+}
+
+
 function agregarItemPedido() {
     const div = document.createElement('div');
     div.className = 'item-pedido';
@@ -673,21 +680,41 @@ function agregarItemPedido() {
       <input type="number" class="item-cantidad" min="1" value="1">
     </div>
     <div class="fila-item-acciones">
-      <button type="button" class="btn-peligro" onclick="this.parentElement.parentElement.remove()">×</button>
+    <button type="button" class="btn-peligro" onclick="this.parentElement.parentElement.remove(); actualizarBotonCrearPedido();">×</button>
       <label class="checkbox-mayor"><input type="checkbox" class="item-es-mayor" ${dniEsRevendedorActual ? 'checked' : ''}> ¿Mayor?</label>
     </div>
+    <div class="aviso-stock-item oculto"></div>
   `;
 
     const selectSeccion = div.querySelector('.item-seccion');
     const inputBusqueda = div.querySelector('.item-busqueda');
     const selectProducto = div.querySelector('.item-producto');
+    const inputCantidad = div.querySelector('.item-cantidad');
+    const avisoStock = div.querySelector('.aviso-stock-item');
 
     const refiltrar = () => {
         selectProducto.innerHTML = opcionesProductoFiltradas(selectSeccion.value, inputBusqueda.value);
+        chequearStockItem();
+    };
+
+    const chequearStockItem = () => {
+        const producto = productosCache.find(p => p.id === Number(selectProducto.value));
+        const cantidad = Number(inputCantidad.value);
+
+        if (producto && cantidad > producto.stock_actual) {
+            avisoStock.textContent = `⚠ Stock insuficiente (disponible: ${producto.stock_actual})`;
+            avisoStock.classList.remove('oculto');
+        } else {
+            avisoStock.textContent = '';
+            avisoStock.classList.add('oculto');
+        }
+        actualizarBotonCrearPedido();
     };
 
     selectSeccion.addEventListener('change', refiltrar);
     inputBusqueda.addEventListener('input', refiltrar);
+    selectProducto.addEventListener('change', chequearStockItem);
+    inputCantidad.addEventListener('input', chequearStockItem);
 
     itemsContainer.appendChild(div);
 }
@@ -722,16 +749,36 @@ function agregarItemCombo() {
     <input type="text" class="item-busqueda item-combo-busqueda" placeholder="Buscar set...">
     <input type="number" class="item-combo-cantidad" min="1" value="1">
     <select class="item-combo-set">${opcionesCombosFiltrados('')}</select>
-    <button type="button" class="btn-peligro" onclick="this.parentElement.remove()">×</button>
+    <button type="button" class="btn-peligro" onclick="this.parentElement.remove(); actualizarBotonCrearPedido();">×</button>
     <label class="checkbox-mayor"><input type="checkbox" class="item-combo-es-mayor" ${dniEsRevendedorActual ? 'checked' : ''}> ¿Mayor?</label>
+    <div class="aviso-stock-item oculto"></div>
   `;
 
     const inputBusqueda = div.querySelector('.item-combo-busqueda');
     const selectCombo = div.querySelector('.item-combo-set');
+    const inputCantidad = div.querySelector('.item-combo-cantidad');
+    const avisoStock = div.querySelector('.aviso-stock-item');
+
+    const chequearStockCombo = () => {
+        const set = setsCache.find(s => s.id === Number(selectCombo.value));
+        const cantidad = Number(inputCantidad.value);
+
+        if (set && cantidad > set.stock_actual) {
+            avisoStock.textContent = `⚠ Stock insuficiente (disponible: ${set.stock_actual})`;
+            avisoStock.classList.remove('oculto');
+        } else {
+            avisoStock.textContent = '';
+            avisoStock.classList.add('oculto');
+        }
+        actualizarBotonCrearPedido();
+    };
 
     inputBusqueda.addEventListener('input', () => {
         selectCombo.innerHTML = opcionesCombosFiltrados(inputBusqueda.value);
+        chequearStockCombo();
     });
+    selectCombo.addEventListener('change', chequearStockCombo);
+    inputCantidad.addEventListener('input', chequearStockCombo);
 
     itemsComboContainer.appendChild(div);
 }
@@ -752,6 +799,7 @@ formPedido.addEventListener('submit', async (e) => {
     }
 
     const itemsProductos = Array.from(itemsContainer.querySelectorAll('.item-pedido')).map(div => ({
+
         producto_id: Number(div.querySelector('.item-producto').value),
         cantidad: Number(div.querySelector('.item-cantidad').value),
         es_mayor: div.querySelector('.item-es-mayor').checked,
