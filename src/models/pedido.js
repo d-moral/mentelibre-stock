@@ -15,6 +15,7 @@ async function crear({ dni, nombre_cliente, direccion, contacto, items, metodo_p
             let precioCompra = 0;
             let productoNombre = '';
             let setNombre = null;
+            let detalleNota = null;
 
             if (item.producto_id) {
                 const { rows } = await client.query('SELECT * FROM productos WHERE id = $1', [item.producto_id]);
@@ -51,6 +52,24 @@ async function crear({ dni, nombre_cliente, direccion, contacto, items, metodo_p
                 productoNombre = combo.nombre;
 
                 await client.query('UPDATE sets SET stock_actual = stock_actual - $1 WHERE id = $2', [item.cantidad, item.set_id]);
+            } else if (item.producto_detalle_id) {
+                const { rows } = await client.query('SELECT * FROM productos_detalle WHERE id = $1', [item.producto_detalle_id]);
+                if (rows.length === 0) throw new Error(`Lote de detalle ${item.producto_detalle_id} no existe`);
+                const lote = rows[0];
+
+                if (lote.cantidad < item.cantidad) {
+                    throw new Error(`Stock insuficiente en el lote de detalle (id ${lote.id})`);
+                }
+
+                const { rows: prodRows } = await client.query('SELECT * FROM productos WHERE id = $1', [lote.producto_id]);
+                const prodOriginal = prodRows[0];
+
+                precioUnitario = lote.precio_venta;
+                precioCompra = prodOriginal ? (prodOriginal.precio_compra || 0) : 0;
+                productoNombre = lote.nombre_personalizado || (prodOriginal ? prodOriginal.nombre : 'Producto en detalle');
+                detalleNota = lote.nota_dano;
+
+                await client.query('UPDATE productos_detalle SET cantidad = cantidad - $1 WHERE id = $2', [item.cantidad, item.producto_detalle_id]);
             }
 
             total += precioUnitario * item.cantidad;
@@ -59,13 +78,15 @@ async function crear({ dni, nombre_cliente, direccion, contacto, items, metodo_p
             itemsProcesados.push({
                 producto_id: item.producto_id || null,
                 set_id: item.set_id || null,
+                producto_detalle_id: item.producto_detalle_id || null,
+                producto_detalle_nota: detalleNota,
                 producto_nombre: productoNombre,
                 set_nombre: setNombre,
                 cantidad: item.cantidad,
                 precio_unitario: precioUnitario,
                 precio_compra_unitario: precioCompra,
-                tipo: item.producto_id ? 'producto' : 'set',
-                es_mayor: !!item.es_mayor
+                tipo: item.producto_detalle_id ? 'detalle' : (item.producto_id ? 'producto' : 'set'),
+                es_mayor: item.producto_detalle_id ? false : !!item.es_mayor
             });
         }
 
@@ -84,12 +105,14 @@ async function crear({ dni, nombre_cliente, direccion, contacto, items, metodo_p
 
         for (const item of itemsProcesados) {
             await client.query(
-                `INSERT INTO pedido_items (pedido_id, producto_id, set_id, producto_nombre, set_nombre, cantidad, precio_unitario, precio_compra_unitario, tipo, es_mayor)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+                `INSERT INTO pedido_items (pedido_id, producto_id, set_id, producto_detalle_id, producto_detalle_nota, producto_nombre, set_nombre, cantidad, precio_unitario, precio_compra_unitario, tipo, es_mayor)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
                 [
                     nuevoPedido.id,
                     item.producto_id,
                     item.set_id,
+                    item.producto_detalle_id,
+                    item.producto_detalle_nota,
                     item.producto_nombre,
                     item.set_nombre,
                     item.cantidad,
@@ -127,7 +150,7 @@ async function obtenerConItems(id) {
     if (!pedido) return null;
 
     const { rows: items } = await pool.query(
-        `SELECT id, producto_id, set_id, producto_nombre, set_nombre, cantidad, precio_unitario, precio_compra_unitario, tipo, es_mayor
+        `SELECT id, producto_id, set_id, producto_detalle_id, producto_detalle_nota, producto_nombre, set_nombre, cantidad, precio_unitario, precio_compra_unitario, tipo, es_mayor
      FROM pedido_items
      WHERE pedido_id = $1`,
         [id]
@@ -220,7 +243,7 @@ async function cancelar(id) {
         }
 
         const { rows: items } = await client.query(
-            'SELECT producto_id, set_id, cantidad FROM pedido_items WHERE pedido_id = $1',
+            'SELECT producto_id, set_id, producto_detalle_id, cantidad FROM pedido_items WHERE pedido_id = $1',
             [id]
         );
 
@@ -232,6 +255,11 @@ async function cancelar(id) {
                actualizado_en = NOW()
            WHERE id = $2`,
                     [item.cantidad, item.set_id]
+                );
+            } else if (item.producto_detalle_id) {
+                await client.query(
+                    `UPDATE productos_detalle SET cantidad = cantidad + $1 WHERE id = $2`,
+                    [item.cantidad, item.producto_detalle_id]
                 );
             } else if (item.producto_id) {
                 await client.query(
@@ -285,6 +313,8 @@ async function actualizar(id, { dni, nombre_cliente, direccion, contacto, items,
                 await client.query('UPDATE productos SET stock_actual = stock_actual + $1 WHERE id = $2', [item.cantidad, item.producto_id]);
             } else if (item.set_id) {
                 await client.query('UPDATE sets SET stock_actual = stock_actual + $1 WHERE id = $2', [item.cantidad, item.set_id]);
+            } else if (item.producto_detalle_id) {
+                await client.query('UPDATE productos_detalle SET cantidad = cantidad + $1 WHERE id = $2', [item.cantidad, item.producto_detalle_id]);
             }
         }
 
@@ -300,6 +330,7 @@ async function actualizar(id, { dni, nombre_cliente, direccion, contacto, items,
             let precioCompra = 0;
             let productoNombre = '';
             let setNombre = null;
+            let detalleNota = null;
 
             if (item.producto_id) {
                 const { rows } = await client.query('SELECT * FROM productos WHERE id = $1', [item.producto_id]);
@@ -334,6 +365,24 @@ async function actualizar(id, { dni, nombre_cliente, direccion, contacto, items,
                 productoNombre = combo.nombre;
 
                 await client.query('UPDATE sets SET stock_actual = stock_actual - $1 WHERE id = $2', [item.cantidad, item.set_id]);
+            } else if (item.producto_detalle_id) {
+                const { rows } = await client.query('SELECT * FROM productos_detalle WHERE id = $1', [item.producto_detalle_id]);
+                if (rows.length === 0) throw new Error(`Lote de detalle ${item.producto_detalle_id} no existe`);
+                const lote = rows[0];
+
+                if (lote.cantidad < item.cantidad) {
+                    throw new Error(`Stock insuficiente en el lote de detalle (id ${lote.id})`);
+                }
+
+                const { rows: prodRows } = await client.query('SELECT * FROM productos WHERE id = $1', [lote.producto_id]);
+                const prodOriginal = prodRows[0];
+
+                precioUnitario = lote.precio_venta;
+                precioCompra = prodOriginal ? (prodOriginal.precio_compra || 0) : 0;
+                productoNombre = lote.nombre_personalizado || (prodOriginal ? prodOriginal.nombre : 'Producto en detalle');
+                detalleNota = lote.nota_dano;
+
+                await client.query('UPDATE productos_detalle SET cantidad = cantidad - $1 WHERE id = $2', [item.cantidad, item.producto_detalle_id]);
             }
 
             total += precioUnitario * item.cantidad;
@@ -342,13 +391,15 @@ async function actualizar(id, { dni, nombre_cliente, direccion, contacto, items,
             itemsProcesados.push({
                 producto_id: item.producto_id || null,
                 set_id: item.set_id || null,
+                producto_detalle_id: item.producto_detalle_id || null,
+                producto_detalle_nota: detalleNota,
                 producto_nombre: productoNombre,
                 set_nombre: setNombre,
                 cantidad: item.cantidad,
                 precio_unitario: precioUnitario,
                 precio_compra_unitario: precioCompra,
-                tipo: item.producto_id ? 'producto' : 'set',
-                es_mayor: !!item.es_mayor
+                tipo: item.producto_detalle_id ? 'detalle' : (item.producto_id ? 'producto' : 'set'),
+                es_mayor: item.producto_detalle_id ? false : !!item.es_mayor
             });
         }
 
@@ -366,12 +417,14 @@ async function actualizar(id, { dni, nombre_cliente, direccion, contacto, items,
 
         for (const item of itemsProcesados) {
             await client.query(
-                `INSERT INTO pedido_items (pedido_id, producto_id, set_id, producto_nombre, set_nombre, cantidad, precio_unitario, precio_compra_unitario, tipo, es_mayor)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+                `INSERT INTO pedido_items (pedido_id, producto_id, set_id, producto_detalle_id, producto_detalle_nota, producto_nombre, set_nombre, cantidad, precio_unitario, precio_compra_unitario, tipo, es_mayor)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
                 [
                     id,
                     item.producto_id,
                     item.set_id,
+                    item.producto_detalle_id,
+                    item.producto_detalle_nota,
                     item.producto_nombre,
                     item.set_nombre,
                     item.cantidad,

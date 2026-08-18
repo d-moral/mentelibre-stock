@@ -91,3 +91,24 @@ ALTER TABLE pedido_items ADD COLUMN IF NOT EXISTS set_id INTEGER REFERENCES sets
 ALTER TABLE pedido_items ADD COLUMN IF NOT EXISTS set_nombre VARCHAR(150);
 ALTER TABLE pedido_items ALTER COLUMN producto_id DROP NOT NULL;
 ALTER TABLE pedido_items ADD COLUMN IF NOT EXISTS tipo VARCHAR(20) NOT NULL DEFAULT 'minorista';
+
+
+-- 8. Lotes de productos en detalle (dañados, precio propio)
+CREATE TABLE IF NOT EXISTS productos_detalle (
+                                                 id              SERIAL PRIMARY KEY,
+                                                 producto_id     INTEGER NOT NULL REFERENCES productos(id) ON DELETE CASCADE,
+    cantidad        INTEGER NOT NULL,
+    precio_venta    NUMERIC(10,2) NOT NULL,
+    nota_dano       TEXT,
+    creado_en       TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+
+CREATE INDEX IF NOT EXISTS idx_productos_detalle_producto_id ON productos_detalle(producto_id);
+ALTER TABLE productos_detalle ADD COLUMN IF NOT EXISTS precio_compra_unitario NUMERIC(10,2) NOT NULL DEFAULT 0;
+ALTER TABLE productos_detalle ADD COLUMN IF NOT EXISTS estado VARCHAR(20) NOT NULL DEFAULT 'activo';
+ALTER TABLE productos_detalle ADD COLUMN IF NOT EXISTS cantidad_original INTEGER;
+
+-- 9. Ítems de pedido que provienen de un lote de detalle
+ALTER TABLE pedido_items ADD COLUMN IF NOT EXISTS producto_detalle_id INTEGER REFERENCES productos_detalle(id) ON DELETE SET NULL;
+ALTER TABLE pedido_items ADD COLUMN IF NOT EXISTS producto_detalle_nota TEXT;
+ALTER TABLE productos_detalle ADD COLUMN IF NOT EXISTS nombre_personalizado VARCHAR(150);
