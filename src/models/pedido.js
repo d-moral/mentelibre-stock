@@ -65,7 +65,7 @@ async function crear({ dni, nombre_cliente, direccion, contacto, items, metodo_p
                 const prodOriginal = prodRows[0];
 
                 precioUnitario = lote.precio_venta;
-                precioCompra = prodOriginal ? (prodOriginal.precio_compra || 0) : 0;
+                precioCompra = Number(lote.precio_compra_unitario) || 0;
                 productoNombre = lote.nombre_personalizado || (prodOriginal ? prodOriginal.nombre : 'Producto en detalle');
                 detalleNota = lote.nota_dano;
 
@@ -372,9 +372,8 @@ async function actualizar(id, { dni, nombre_cliente, direccion, contacto, items,
 
                 const { rows: prodRows } = await client.query('SELECT * FROM productos WHERE id = $1', [lote.producto_id]);
                 const prodOriginal = prodRows[0];
-
                 precioUnitario = lote.precio_venta;
-                precioCompra = prodOriginal ? (prodOriginal.precio_compra || 0) : 0;
+                precioCompra = Number(lote.precio_compra_unitario) || 0;
                 productoNombre = lote.nombre_personalizado || (prodOriginal ? prodOriginal.nombre : 'Producto en detalle');
                 detalleNota = lote.nota_dano;
 
