@@ -79,13 +79,12 @@ function generarBoleta(pedido, res) {
     doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
     doc.moveDown(0.5);
 
-    function renderLinea(nombre, esMayor, cantidad, precioUnit, indentado, mostrarSubtotal) {
+    function renderLinea(nombre, tipoTexto, cantidad, precioUnit, indentado, mostrarSubtotal) {
         const y = doc.y;
         const x = indentado ? colProducto + 15 : colProducto;
         if (indentado) doc.fontSize(9).fillColor('#555555');
         doc.text(nombre, x, y);
-        if (esMayor !== null) {
-            const tipoTexto = esMayor ? 'Mayorista' : 'Minorista';
+        if (tipoTexto !== null) {
             doc.text(tipoTexto, colTipo, y);
         }
         doc.text(String(cantidad), colCantidad, y);
@@ -97,21 +96,35 @@ function generarBoleta(pedido, res) {
         doc.moveDown(0.5);
     }
 
-    // Combos primero (con sus componentes indentados debajo), después los
-    // productos sueltos por separado
+    function renderNota(texto) {
+        const y = doc.y;
+        doc.fontSize(8).fillColor('#777777');
+        doc.text(texto, colProducto + 15, y);
+        doc.fontSize(10).fillColor('#000000');
+        doc.moveDown(0.4);
+    }
+
+    function tipoTextoDe(item) {
+        return item.es_mayor ? 'Mayorista' : 'Minorista';
+    }
+
+
     const itemsCombos = pedido.items.filter(i => i.set_id);
     const itemsProductos = pedido.items.filter(i => !i.set_id);
 
 
     for (const item of itemsCombos) {
-        renderLinea(item.set_nombre, item.es_mayor, item.cantidad, item.precio_unitario, false, true);
+        renderLinea(item.set_nombre, tipoTextoDe(item), item.cantidad, item.precio_unitario, false, true);
         for (const comp of item.componentes || []) {
             renderLinea(`- ${comp.producto_nombre}`, null, comp.cantidad * item.cantidad, comp.precio_venta, true, false);
         }
     }
 
     for (const item of itemsProductos) {
-        renderLinea(item.producto_nombre, item.es_mayor, item.cantidad, item.precio_unitario, false, true);
+        renderLinea(item.producto_nombre, tipoTextoDe(item), item.cantidad, item.precio_unitario, false, true);
+        if (item.producto_detalle_nota) {
+            renderNota(`Motivo: ${item.producto_detalle_nota}`);
+        }
     }
 
 

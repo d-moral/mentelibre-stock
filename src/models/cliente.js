@@ -125,23 +125,40 @@ class Cliente {
 
     static async obtenerHistorial(id) {
         const { rows: pedidos } = await pool.query(
-            `SELECT p.id, p.fecha, p.total, p.estado
+            `SELECT p.id, p.fecha, p.total, p.estado,
+                    COALESCE(
+                        json_agg(
+                            json_build_object(
+                                'nombre', COALESCE(pi.set_nombre, pi.producto_nombre),
+                                'cantidad', pi.cantidad,
+                                'es_detalle', pi.producto_detalle_id IS NOT NULL
+                            ) ORDER BY pi.id
+                        ) FILTER (WHERE pi.id IS NOT NULL), '[]'
+                    ) AS items
                  FROM pedidos p
                  JOIN clientes c ON (p.cliente_id = c.id OR p.dni = c.dni)
+                 LEFT JOIN pedido_items pi ON pi.pedido_id = p.id
                  WHERE c.id = $1
+                 GROUP BY p.id, p.fecha, p.total, p.estado
                  ORDER BY p.fecha DESC`,
             [id]
         );
 
         const { rows: topProductos } = await pool.query(
             `SELECT
-                    COALESCE(pi.set_nombre, pi.producto_nombre) AS nombre,
+                    CASE
+                        WHEN pi.producto_detalle_id IS NOT NULL THEN COALESCE(pi.producto_nombre, '') || ' (Dañado)'
+                        ELSE COALESCE(pi.set_nombre, pi.producto_nombre)
+                    END AS nombre,
                     SUM(pi.cantidad)::INT AS total_comprado
                  FROM pedidos p
                  JOIN pedido_items pi ON pi.pedido_id = p.id
                  JOIN clientes c ON (p.cliente_id = c.id OR p.dni = c.dni)
                  WHERE c.id = $1 AND p.estado = 'vendido'
-                 GROUP BY COALESCE(pi.set_nombre, pi.producto_nombre)
+                 GROUP BY CASE
+                        WHEN pi.producto_detalle_id IS NOT NULL THEN COALESCE(pi.producto_nombre, '') || ' (Dañado)'
+                        ELSE COALESCE(pi.set_nombre, pi.producto_nombre)
+                    END
                  ORDER BY total_comprado DESC
                  LIMIT 5`,
             [id]

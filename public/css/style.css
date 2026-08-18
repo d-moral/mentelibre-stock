@@ -245,6 +245,15 @@ th {
     border-radius: 6px;
 }
 
+.item-producto {
+    flex: 1 1 220px;
+    min-width: 0;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .checkbox-mayor {
     display: flex;
     align-items: center;
@@ -357,7 +366,24 @@ th {
     color: white;
 }
 
-.subtab-btn-stock:hover:not(.active) {
+
+.subtab-btn-cliente {
+    background: white;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.subtab-btn-cliente.active {
+    background: #1e293b;
+    border-color: #1e293b;
+    color: white;
+}
+
+.subtab-btn-cliente:hover:not(.active) {
     background: #f1f5f9;
 }
 
@@ -694,4 +720,54 @@ th {
 
 .aviso-stock-item.oculto {
     display: none;
+}
+
+.nota-detalle-item {
+    width: 100%;
+    color: #64748b;
+    font-size: 0.8rem;
+    margin-top: -0.3rem;
+}
+
+.nota-detalle-item.oculto {
+    display: none;
+}
+
+.lista-lotes-detalle {
+    list-style: none;
+    padding: 0;
+    margin: 0.3rem 0 0;
+}
+
+.lista-lotes-detalle li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.3rem 0;
+    font-size: 0.85rem;
+}
+
+.nota-item-detalle {
+    color: #94a3b8;
+    font-size: 0.8rem;
+}
+
+.subtab-btn-set {
+    background: white;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.subtab-btn-set.active {
+    background: #1e293b;
+    border-color: #1e293b;
+    color: white;
+}
+
+.subtab-btn-set:hover:not(.active) {
+    background: #f1f5f9;
 }

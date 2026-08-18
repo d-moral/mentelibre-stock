@@ -69,6 +69,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // ---------- PRODUCTOS ----------
 let productosCache = [];
+let lotesDetalleCache = [];
+let lotesHistorialCache = [];
 let paginaProductos = 1;
 let busquedaProductoActiva = '';
 let filtroDisponibilidadActivo = '';
@@ -94,13 +96,32 @@ document.querySelectorAll('.subtab-btn-stock').forEach(btn => {
     });
 });
 
+document.querySelectorAll('.subtab-btn-set').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.subtab-btn-set').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        filtroDisponibilidadSetActivo = btn.dataset.disponibilidadSet;
+        paginaSets = 1;
+        renderizarSets();
+    });
+});
+
 async function cargarProductos() {
     const res = await fetch(`${API}/productos`);
     productosCache = await res.json();
+    await cargarLotesDetalle();
     actualizarFiltroSecciones();
     actualizarResumenStock();
     cargarProductosMasVendidos();
     renderizarProductos();
+}
+
+async function cargarLotesDetalle() {
+    const res = await fetch(`${API}/productos-detalle`);
+    lotesDetalleCache = res.ok ? await res.json() : [];
+
+    const resHistorial = await fetch(`${API}/productos-detalle/historial`);
+    lotesHistorialCache = resHistorial.ok ? await resHistorial.json() : [];
 }
 
 async function cargarProductosMasVendidos() {
@@ -127,14 +148,38 @@ async function cargarProductosMasVendidos() {
 }
 
 function actualizarResumenStock() {
-    const unidadesTotales = productosCache.reduce((acc, p) => acc + Number(p.stock_actual), 0);
-    const invertidoTotal = productosCache.reduce(
+    const unidadesProductos = productosCache.reduce((acc, p) => acc + Number(p.stock_actual), 0);
+    const invertidoProductos = productosCache.reduce(
         (acc, p) => acc + Number(p.precio_compra) * Number(p.stock_actual),
         0
     );
 
+    const unidadesDetalle = lotesDetalleCache.reduce((acc, l) => acc + Number(l.cantidad), 0);
+    const invertidoDetalle = lotesDetalleCache.reduce(
+        (acc, l) => acc + Number(l.precio_venta) * Number(l.cantidad),
+        0
+    );
+
+    const perdidaTotal = lotesDetalleCache.reduce((acc, l) => {
+        const perdidaUnitaria = Number(l.precio_compra_unitario) - Number(l.precio_venta);
+        return acc + Math.max(0, perdidaUnitaria) * Number(l.cantidad);
+    }, 0);
+
+    const perdidaHistorica = lotesHistorialCache.reduce((acc, l) => {
+        const perdidaUnitaria = Math.max(0, Number(l.precio_compra_unitario) - Number(l.precio_venta));
+        const cantidadQueNuncaVolvioAlStock = l.estado === 'cancelado'
+            ? Math.max(0, Number(l.cantidad_original) - Number(l.cantidad))
+            : Number(l.cantidad_original);
+        return acc + perdidaUnitaria * cantidadQueNuncaVolvioAlStock;
+    }, 0);
+
+    const unidadesTotales = unidadesProductos + unidadesDetalle;
+    const invertidoTotal = invertidoProductos + invertidoDetalle;
+
     document.getElementById('resumen-unidades').textContent = unidadesTotales;
     document.getElementById('resumen-invertido').textContent = formatearPrecio(invertidoTotal);
+    document.getElementById('resumen-perdida').textContent = formatearPrecio(perdidaTotal);
+    document.getElementById('resumen-perdida-historica').textContent = formatearPrecio(perdidaHistorica);
 }
 
 function actualizarFiltroSecciones() {
@@ -150,9 +195,74 @@ function actualizarFiltroSecciones() {
 
 function renderizarProductos() {
     const tbody = document.getElementById('tabla-productos');
+    const thead = tbody.closest('table').querySelector('thead');
     tbody.innerHTML = '';
 
     const seccionElegida = document.getElementById('filtro-seccion').value;
+
+    // --- VISTA: CON DETALLE ---
+    if (filtroDisponibilidadActivo === 'con_detalle') {
+        thead.innerHTML = `
+            <tr>
+                <th>PRODUCTO ORIGINAL</th>
+                <th>NOMBRE DETALLE</th>
+                <th>STOCK</th>
+                <th>PRECIO REMATE</th>
+                <th>ACCIONES</th>
+            </tr>
+        `;
+
+        const lotesFiltrados = lotesDetalleCache
+            .filter(l => l.cantidad > 0)
+            .filter(l => !seccionElegida || l.producto_seccion === seccionElegida)
+            .filter(l => !busquedaProductoActiva ||
+                (l.producto_nombre && l.producto_nombre.toLowerCase().includes(busquedaProductoActiva)) ||
+                (l.nombre_personalizado && l.nombre_personalizado.toLowerCase().includes(busquedaProductoActiva)) ||
+                (l.nota_dano && l.nota_dano.toLowerCase().includes(busquedaProductoActiva))
+            );
+
+        const { pagina, totalPaginas, itemsPagina } = paginar(lotesFiltrados, paginaProductos);
+        paginaProductos = pagina;
+
+        for (const l of itemsPagina) {
+            const tr = document.createElement('tr');
+            tr.dataset.loteId = l.id;
+
+            // CORRECCIÓN CLAVE: Buscar el nombre original directamente en la lista de productos principal
+            const productoOriginal = productosCache.find(p => p.id === l.producto_id);
+            const nombreOriginalReal = productoOriginal ? productoOriginal.nombre : (l.producto_nombre || '-');
+
+            tr.innerHTML = `
+                <td><strong>${nombreOriginalReal}</strong></td>
+                <td>${l.nombre_personalizado || '-'}</td>
+                <td>${l.cantidad}</td>
+                <td><strong>${formatearPrecio(l.precio_venta)}</strong></td>
+                <td class="acciones-cell">
+                    <button class="btn-secundario" onclick="editarLoteDetalle(${l.id})">Editar</button>
+                    <button class="btn-peligro" onclick="cancelarLoteDetalle(${l.id}, ${l.producto_id})">Devolver</button>
+                    <button class="btn-secundario" onclick="toggleNotaDetalle(${l.id})">⋮</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        renderizarControlesPaginacion('paginacion-productos', pagina, totalPaginas, 'cambiarPaginaProductos');
+        return;
+    }
+
+    // --- VISTA: PRINCIPAL (Todos, Disponibles, Sin Stock) ---
+    thead.innerHTML = `
+        <tr>
+            <th>Nombre</th>
+            <th>Sección</th>
+            <th>Stock</th>
+            <th>Precio venta</th>
+            <th>Precio mayorista</th>
+            <th>Disponibilidad</th>
+            <th>Acciones</th>
+        </tr>
+    `;
+
     const productosFiltrados = productosCache
         .filter(p => !seccionElegida || p.seccion === seccionElegida)
         .filter(p => !busquedaProductoActiva || p.nombre.toLowerCase().includes(busquedaProductoActiva))
@@ -173,19 +283,20 @@ function renderizarProductos() {
         const claseEstado = disponible ? 'estado-activo' : 'estado-sin_stock';
 
         tr.innerHTML = `
-      <td>${p.nombre}</td>
-      <td>${p.seccion || '-'}</td>
-      <td>${p.stock_actual}</td>
-      <td>${formatearPrecio(p.precio_venta)}</td>
-      <td>${p.precio_venta_mayor ? formatearPrecio(p.precio_venta_mayor) : '-'}</td>
-      <td class="${claseEstado}">${etiqueta}</td>
-      <td class="acciones-cell">
-        <button class="btn-secundario" onclick="abrirEditarProducto(${p.id})">Editar</button>
-        <button class="btn-secundario" onclick="reponerStock(${p.id})">+ Reponer</button>
-        <button class="btn-peligro" onclick="eliminarProducto(${p.id})">Eliminar</button>
-        <button class="btn-secundario" onclick="toggleDetalleProducto(${p.id})">⋮</button>
-      </td>
-    `;
+            <td>${p.nombre}</td>
+            <td>${p.seccion || '-'}</td>
+            <td>${p.stock_actual}</td>
+            <td>${formatearPrecio(p.precio_venta)}</td>
+            <td>${p.precio_venta_mayor ? formatearPrecio(p.precio_venta_mayor) : '-'}</td>
+            <td class="${claseEstado}">${etiqueta}</td>
+            <td class="acciones-cell">
+                <button class="btn-secundario" onclick="abrirEditarProducto(${p.id})">Editar</button>
+                <button class="btn-secundario" onclick="reponerStock(${p.id})">+ Reponer</button>
+                <button class="btn-secundario" onclick="marcarComoDetalle(${p.id})">+ Detalle</button>
+                <button class="btn-peligro" onclick="eliminarProducto(${p.id})">Eliminar</button>
+                <button class="btn-secundario" onclick="toggleDetalleProducto(${p.id})">⋮</button>
+            </td>
+        `;
         tbody.appendChild(tr);
     }
 
@@ -197,7 +308,7 @@ function cambiarPaginaProductos(nuevaPagina) {
     renderizarProductos();
 }
 
-function toggleDetalleProducto(id) {
+async function toggleDetalleProducto(id) {
     const filaExistente = document.getElementById(`detalle-producto-${id}`);
     if (filaExistente) {
         filaExistente.remove();
@@ -210,12 +321,28 @@ function toggleDetalleProducto(id) {
     const filaProducto = document.querySelector(`tr[data-producto-id="${id}"]`);
     if (!p || !filaProducto) return;
 
+    const res = await fetch(`${API}/productos-detalle/producto/${id}`);
+    const lotes = res.ok ? await res.json() : [];
+    const lotesActivos = lotes.filter(l => l.cantidad > 0);
+
     const filaDetalle = document.createElement('tr');
     filaDetalle.id = `detalle-producto-${id}`;
     filaDetalle.className = 'fila-detalle-producto';
     filaDetalle.innerHTML = `
     <td colspan="7">
       <p class="detalle-descripcion">${p.descripcion || 'Sin descripción'}</p>
+      ${lotesActivos.length > 0 ? `
+        <p class="detalle-descripcion"><strong>Lotes en detalle:</strong></p>
+        <ul class="lista-lotes-detalle">
+          ${lotesActivos.map(l => `
+            <li>
+              ${l.cantidad} un. de "${l.nombre_personalizado || l.producto_nombre}" a ${formatearPrecio(l.precio_venta)} — ${l.nota_dano || 'sin descripción'}
+              <button class="btn-secundario" onclick="editarLoteDetalle(${l.id})">Editar</button>
+              <button class="btn-peligro" onclick="cancelarLoteDetalle(${l.id}, ${id})">Devolver al stock</button>
+            </li>
+          `).join('')}
+        </ul>
+      ` : ''}
     </td>
   `;
 
@@ -284,6 +411,121 @@ async function eliminarProducto(id) {
     cargarProductos();
 }
 
+const modalDetalle = document.getElementById('modal-detalle');
+const formDetalle = document.getElementById('form-detalle');
+
+function marcarComoDetalle(id) {
+    formDetalle.reset();
+    document.getElementById('detalle-nombre-personalizado').value = '';
+    const producto = productosCache.find(p => p.id === id);
+    document.getElementById('modal-detalle-titulo').textContent = producto ? `Marcar "${producto.nombre}" como detalle` : 'Marcar producto como detalle';
+    document.getElementById('detalle-producto-id').value = id;
+    document.getElementById('detalle-lote-id').value = '';
+    modalDetalle.classList.remove('hidden');
+}
+
+function editarLoteDetalle(loteId) {
+    const lote = lotesDetalleCache.find(l => l.id === loteId);
+    if (!lote) return;
+
+    formDetalle.reset();
+    const productoOriginal = productosCache.find(p => p.id === lote.producto_id);
+    document.getElementById('modal-detalle-titulo').textContent = `Editar detalle de "${productoOriginal ? productoOriginal.nombre : lote.producto_nombre}"`;
+    document.getElementById('detalle-producto-id').value = '';
+    document.getElementById('detalle-lote-id').value = lote.id;
+    document.getElementById('detalle-nombre-personalizado').value = lote.nombre_personalizado || '';
+    document.getElementById('detalle-cantidad').value = lote.cantidad;
+    document.getElementById('detalle-precio-venta').value = lote.precio_venta;
+    document.getElementById('detalle-nota-dano').value = lote.nota_dano || '';
+    modalDetalle.classList.remove('hidden');
+}
+
+document.getElementById('btn-cancelar-detalle').addEventListener('click', () => {
+    modalDetalle.classList.add('hidden');
+});
+
+formDetalle.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const productoIdValue = document.getElementById('detalle-producto-id').value;
+    const loteIdValue = document.getElementById('detalle-lote-id').value;
+
+    const productoId = productoIdValue ? Number(productoIdValue) : null;
+    const loteId = loteIdValue ? Number(loteIdValue) : null;
+
+    const nombre_personalizado = document.getElementById('detalle-nombre-personalizado').value.trim();
+    const cantidad = Number(document.getElementById('detalle-cantidad').value);
+    const precio_venta = Number(document.getElementById('detalle-precio-venta').value);
+    const nota_dano = document.getElementById('detalle-nota-dano').value.trim();
+
+    const url = loteId
+        ? `${API}/productos-detalle/${loteId}`
+        : `${API}/productos-detalle/producto/${productoId}`;
+
+    const method = loteId ? 'PUT' : 'POST';
+
+    const bodyData = {
+        nombre_personalizado,
+        cantidad,
+        precio_venta,
+        nota_dano
+    };
+
+    const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyData),
+    });
+
+    if (!res.ok) {
+        const error = await res.json();
+        alert(`Error: ${error.error}`);
+        return;
+    }
+
+    modalDetalle.classList.add('hidden');
+    await cargarProductos();
+});
+
+async function cancelarLoteDetalle(loteId, productoId) {
+    if (!confirm('¿Cancelar este lote de detalle? Las unidades vuelven al stock normal.')) return;
+
+    const res = await fetch(`${API}/productos-detalle/${loteId}`, { method: 'DELETE' });
+    if (!res.ok) {
+        const error = await res.json();
+        alert(`Error: ${error.error}`);
+        return;
+    }
+
+    await cargarProductos();
+    document.getElementById(`detalle-producto-${productoId}`)?.remove();
+    toggleDetalleProducto(productoId);
+}
+
+function toggleNotaDetalle(loteId) {
+    const filaExistente = document.getElementById(`nota-detalle-${loteId}`);
+    if (filaExistente) {
+        filaExistente.remove();
+        return;
+    }
+
+    document.querySelectorAll('.fila-nota-detalle').forEach(f => f.remove());
+
+    const lote = lotesDetalleCache.find(l => l.id === loteId);
+    const filaLote = document.querySelector(`tr[data-lote-id="${loteId}"]`);
+    if (!lote || !filaLote) return;
+
+    const filaDetalle = document.createElement('tr');
+    filaDetalle.id = `nota-detalle-${loteId}`;
+    filaDetalle.className = 'fila-nota-detalle';
+    filaDetalle.innerHTML = `
+        <td colspan="5">
+            <p class="detalle-descripcion"><strong>Nota / Falla:</strong> ${lote.nota_dano || 'Sin descripción del daño'}</p>
+        </td>
+    `;
+
+    filaLote.insertAdjacentElement('afterend', filaDetalle);
+}
 // ---------- MODAL PRODUCTO ----------
 const modalProducto = document.getElementById('modal-producto');
 const formProducto = document.getElementById('form-producto');
@@ -477,17 +719,18 @@ async function toggleDetallePedido(id) {
 
     const filasItems = pedido.items.map(item => {
         const etiqueta = item.set_id ? `${item.set_nombre} (set)` : item.producto_nombre;
+        const notaHtml = item.producto_detalle_nota ? `<br><small class="nota-item-detalle">${item.producto_detalle_nota}</small>` : '';
 
         if (esCancelado) {
             return `<tr>
-        <td>${etiqueta}</td>
+        <td>${etiqueta}${notaHtml}</td>
         <td>${item.cantidad}</td>
       </tr>`;
         }
 
         const ganancia = (Number(item.precio_unitario) - Number(item.precio_compra_unitario)) * item.cantidad;
         return `<tr>
-      <td>${etiqueta}</td>
+      <td>${etiqueta}${notaHtml}</td>
       <td>${item.cantidad}</td>
       <td>${formatearPrecio(ganancia)}</td>
     </tr>`;
@@ -617,6 +860,19 @@ async function editarPedido(id) {
             divCombo.querySelector('.item-combo-set').value = item.set_id;
             divCombo.querySelector('.item-combo-cantidad').value = item.cantidad;
             divCombo.querySelector('.item-combo-es-mayor').checked = item.es_mayor;
+        } else if (item.producto_detalle_id) {
+            if (!lotesDetalleCache.some(l => l.id === item.producto_detalle_id)) {
+                const resLote = await fetch(`${API}/productos-detalle/${item.producto_detalle_id}`);
+                if (resLote.ok) {
+                    const lote = await resLote.json();
+                    lotesDetalleCache.push(lote);
+                }
+            }
+            agregarItemDetalle();
+            const divProducto = itemsContainer.lastElementChild;
+            divProducto.querySelector('.item-producto').value = `d-${item.producto_detalle_id}`;
+            divProducto.querySelector('.item-producto').dispatchEvent(new Event('change'));
+            divProducto.querySelector('.item-cantidad').value = item.cantidad;
         } else {
             agregarItemPedido();
             const divProducto = itemsContainer.lastElementChild;
@@ -651,6 +907,7 @@ document.getElementById('btn-cancelar-pedido').addEventListener('click', () => {
 });
 
 document.getElementById('btn-agregar-item').addEventListener('click', agregarItemPedido);
+document.getElementById('btn-agregar-item-detalle').addEventListener('click', agregarItemDetalle);
 
 
 document.getElementById('btn-agregar-item-combo').addEventListener('click', agregarItemCombo);
@@ -678,6 +935,21 @@ function opcionesProductoFiltradas(seccion, busqueda) {
         .join('');
 }
 
+function opcionesDetalleFiltradas(busqueda) {
+    const texto = (busqueda || '').trim().toLowerCase();
+
+    return lotesDetalleCache
+        .filter(l => !texto || l.producto_nombre.toLowerCase().includes(texto) || (l.nota_dano || '').toLowerCase().includes(texto))
+        .map(l => {
+            const sinStock = l.cantidad <= 0;
+            const nombreMostrar = l.nombre_personalizado || l.producto_nombre;
+            return `<option value="d-${l.id}" ${sinStock ? 'disabled' : ''}>
+        ${nombreMostrar} — remate ${formatearPrecio(l.precio_venta)} (stock: ${l.cantidad})
+      </option>`;
+        })
+        .join('');
+}
+
 function actualizarBotonCrearPedido() {
     const btnSubmit = document.querySelector('#modal-pedido button[type="submit"]');
     const hayStockInsuficiente = document.querySelectorAll('.aviso-stock-item:not(.oculto)').length > 0;
@@ -699,7 +971,6 @@ function agregarItemPedido() {
     <div class="fila-item-acciones">
     <button type="button" class="btn-peligro" onclick="this.parentElement.parentElement.remove(); actualizarBotonCrearPedido();">×</button>
       <label class="checkbox-mayor"><input type="checkbox" class="item-es-mayor" ${dniEsRevendedorActual ? 'checked' : ''}> ¿Mayor?</label>
-    </div>
     <div class="aviso-stock-item oculto"></div>
   `;
 
@@ -719,7 +990,7 @@ function agregarItemPedido() {
         const cantidad = Number(inputCantidad.value);
 
         if (producto && cantidad > producto.stock_actual) {
-            avisoStock.textContent = `⚠ Stock insuficiente (disponible: ${producto.stock_actual})`;
+            avisoStock.textContent = `Stock insuficiente (disponible: ${producto.stock_actual})`;
             avisoStock.classList.remove('oculto');
         } else {
             avisoStock.textContent = '';
@@ -734,6 +1005,68 @@ function agregarItemPedido() {
     inputCantidad.addEventListener('input', chequearStockItem);
 
     itemsContainer.appendChild(div);
+}
+
+function agregarItemDetalle() {
+    if (lotesDetalleCache.length === 0) {
+        alert('Todavía no tenés productos marcados como detalle');
+        return;
+    }
+
+    const div = document.createElement('div');
+    div.className = 'item-pedido item-detalle';
+
+    div.innerHTML = `
+    <div class="fila-item-principal">
+      <input type="text" class="item-busqueda item-detalle-busqueda" placeholder="Buscar dañado...">
+      <select class="item-producto">${opcionesDetalleFiltradas('')}</select>
+      <input type="number" class="item-cantidad" min="1" value="1">
+    </div>
+    <div class="fila-item-acciones">
+    <button type="button" class="btn-peligro" onclick="this.parentElement.parentElement.remove(); actualizarBotonCrearPedido();">×</button>
+    <div class="aviso-stock-item oculto"></div>
+    <div class="nota-detalle-item oculto"></div>
+  `;
+
+    const inputBusqueda = div.querySelector('.item-detalle-busqueda');
+    const selectProducto = div.querySelector('.item-producto');
+    const inputCantidad = div.querySelector('.item-cantidad');
+    const avisoStock = div.querySelector('.aviso-stock-item');
+    const notaDetalle = div.querySelector('.nota-detalle-item');
+
+    const refiltrar = () => {
+        selectProducto.innerHTML = opcionesDetalleFiltradas(inputBusqueda.value);
+        chequearStockDetalle();
+    };
+
+    const chequearStockDetalle = () => {
+        const lote = lotesDetalleCache.find(l => l.id === Number(selectProducto.value.slice(2)));
+        const cantidad = Number(inputCantidad.value);
+
+        if (lote && lote.nota_dano) {
+            notaDetalle.textContent = lote.nota_dano;
+            notaDetalle.classList.remove('oculto');
+        } else {
+            notaDetalle.textContent = '';
+            notaDetalle.classList.add('oculto');
+        }
+
+        if (lote && cantidad > lote.cantidad) {
+            avisoStock.textContent = `Stock insuficiente (disponible: ${lote.cantidad})`;
+            avisoStock.classList.remove('oculto');
+        } else {
+            avisoStock.textContent = '';
+            avisoStock.classList.add('oculto');
+        }
+        actualizarBotonCrearPedido();
+    };
+
+    inputBusqueda.addEventListener('input', refiltrar);
+    selectProducto.addEventListener('change', chequearStockDetalle);
+    inputCantidad.addEventListener('input', chequearStockDetalle);
+
+    itemsContainer.appendChild(div);
+    chequearStockDetalle();
 }
 
 function opcionesCombosFiltrados(busqueda) {
@@ -751,6 +1084,7 @@ function opcionesCombosFiltrados(busqueda) {
         })
         .join('');
 }
+
 
 function agregarItemCombo() {
     const combosDisponibles = setsCache.filter(s => s.activo);
@@ -816,12 +1150,17 @@ formPedido.addEventListener('submit', async (e) => {
         return;
     }
 
-    const itemsProductos = Array.from(itemsContainer.querySelectorAll('.item-pedido')).map(div => ({
+    const itemsProductos = Array.from(itemsContainer.querySelectorAll('.item-pedido')).map(div => {
+        const seleccion = div.querySelector('.item-producto').value;
+        const esDetalle = seleccion.startsWith('d-');
 
-        producto_id: Number(div.querySelector('.item-producto').value),
-        cantidad: Number(div.querySelector('.item-cantidad').value),
-        es_mayor: div.querySelector('.item-es-mayor').checked,
-    }));
+        return {
+            producto_id: esDetalle ? null : Number(seleccion),
+            producto_detalle_id: esDetalle ? Number(seleccion.slice(2)) : null,
+            cantidad: Number(div.querySelector('.item-cantidad').value),
+            es_mayor: esDetalle ? false : div.querySelector('.item-es-mayor').checked,
+        };
+    });
 
     const itemsCombos = Array.from(itemsComboContainer.querySelectorAll('.item-combo')).map(div => ({
         set_id: Number(div.querySelector('.item-combo-set').value),
@@ -920,6 +1259,7 @@ document.getElementById('pedido-metodo-pago').addEventListener('change', (e) => 
 // ---------- COMBOS ----------
 let setsCache = [];
 let paginaSets = 1;
+let filtroDisponibilidadSetActivo = '';
 
 async function cargarSets() {
     const res = await fetch(`${API}/sets`);
@@ -935,7 +1275,12 @@ function renderizarSets() {
 
     const setsActivos = setsCache
         .filter(s => s.activo)
-        .filter(s => !texto || s.nombre.toLowerCase().includes(texto));
+        .filter(s => !texto || s.nombre.toLowerCase().includes(texto))
+        .filter(s => {
+            if (!filtroDisponibilidadSetActivo) return true;
+            const disponible = s.stock_actual > 0;
+            return filtroDisponibilidadSetActivo === 'disponible' ? disponible : !disponible;
+        });
 
     const { pagina, totalPaginas, itemsPagina } = paginar(setsActivos, paginaSets);
     paginaSets = pagina;
@@ -1262,13 +1607,19 @@ async function toggleDetalleCliente(id) {
         : '<tr><td colspan="2">Sin compras vendidas todavía</td></tr>';
 
     const filasPedidos = pedidos.length > 0
-        ? pedidos.map(p => `
+        ? pedidos.map(p => {
+            const productosTexto = (p.items || [])
+                .map(it => it.es_detalle ? `${it.nombre} (dañado)` : it.nombre)
+                .join(', ');
+            return `
         <tr>
           <td>${formatearFecha(p.fecha)}</td>
+          <td>${productosTexto || '-'}</td>
           <td>${formatearPrecio(p.total)}</td>
           <td class="estado-${p.estado}">${p.estado}</td>
-        </tr>`).join('')
-        : '<tr><td colspan="3">Todavía no hizo pedidos</td></tr>';
+        </tr>`;
+        }).join('')
+        : '<tr><td colspan="4">Todavía no hizo pedidos</td></tr>';
 
     const filaDetalle = document.createElement('tr');
     filaDetalle.id = `detalle-cliente-${id}`;
@@ -1280,9 +1631,9 @@ async function toggleDetalleCliente(id) {
         <thead><tr><th>Producto</th><th>Cantidad</th></tr></thead>
         <tbody>${filasTop}</tbody>
       </table>
-      <h4>Historial de pedidos</h4>
+            <h4>Historial de pedidos</h4>
       <table class="detalle-ganancia-items">
-        <thead><tr><th>Fecha</th><th>Total</th><th>Estado</th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Productos</th><th>Total</th><th>Estado</th></tr></thead>
         <tbody>${filasPedidos}</tbody>
       </table>
     </td>

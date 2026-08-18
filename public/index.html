@@ -35,6 +35,7 @@
             <button class="subtab-btn-stock active" data-disponibilidad="">Todos</button>
             <button class="subtab-btn-stock" data-disponibilidad="disponible">Disponibles</button>
             <button class="subtab-btn-stock" data-disponibilidad="sin_stock">Sin stock</button>
+            <button class="subtab-btn-stock" data-disponibilidad="con_detalle">Con detalle</button>
         </div>
 
         <div class="filtro-seccion">
@@ -55,6 +56,14 @@
             <div class="resumen-item">
                 <span class="resumen-label">Invertido</span>
                 <span id="resumen-invertido" class="resumen-valor">$0.00</span>
+            </div>
+            <div class="resumen-item">
+                <span class="resumen-label">Plata perdida</span>
+                <span id="resumen-perdida" class="resumen-valor">$0.00</span>
+            </div>
+            <div class="resumen-item">
+                <span class="resumen-label">Pérdida histórica</span>
+                <span id="resumen-perdida-historica" class="resumen-valor">$0.00</span>
             </div>
         </div>
 
@@ -156,6 +165,12 @@
         <div class="panel-header">
             <h2>Sets</h2>
             <button id="btn-nuevo-set">+ Armar set</button>
+        </div>
+
+        <div class="subtabs">
+            <button class="subtab-btn-set active" data-disponibilidad-set="">Todos</button>
+            <button class="subtab-btn-set" data-disponibilidad-set="disponible">Disponibles</button>
+            <button class="subtab-btn-set" data-disponibilidad-set="sin_stock">Sin stock</button>
         </div>
 
         <div class="filtro-seccion">
@@ -294,8 +309,10 @@
             <h4>Productos</h4>
             <div id="pedido-items"></div>
             <button type="button" id="btn-agregar-item">+ Agregar producto</button>
+            <button type="button" id="btn-agregar-item-detalle" class="btn-secundario">+ Agregar dañado</button>
 
             <h4>Sets</h4>
+
             <div id="pedido-items-combos"></div>
             <button type="button" id="btn-agregar-item-combo">+ Agregar set</button>
 
@@ -308,16 +325,35 @@
 </div>
 
 <!-- MODAL: proveedores -->
-<div id="modal-proveedores" class="modal hidden">
-    <div class="modal-content">
-        <h3>Proveedores</h3>
-        <div id="lista-proveedores"></div>
-        <div class="modal-actions">
-            <button type="button" id="btn-cerrar-proveedores">Cerrar</button>
+    <div id="modal-proveedores" class="modal hidden">
+        <div class="modal-content">
+            <h3>Proveedores</h3>
+            <div id="lista-proveedores"></div>
+            <div class="modal-actions">
+                <button type="button" id="btn-cerrar-proveedores">Cerrar</button>
+            </div>
         </div>
     </div>
-</div>
 
-<script src="js/app.js"></script>
+    <!-- MODAL: marcar producto como detalle -->
+    <div id="modal-detalle" class="modal hidden">
+        <div class="modal-content">
+            <h3 id="modal-detalle-titulo">Marcar producto como detalle</h3>
+            <form id="form-detalle">
+                <input type="hidden" id="detalle-producto-id">
+                <input type="hidden" id="detalle-lote-id">
+                <label>Nombre de variante (opcional) <input type="text" id="detalle-nombre-personalizado" placeholder="Ej. Con tapa dañada"></label>
+                <label>Cantidad dañada <input type="number" min="1" id="detalle-cantidad" required></label>
+                <label>Precio de venta <input type="number" step="0.01" min="0" id="detalle-precio-venta" required></label>
+                <label>Descripción del daño <input type="text" id="detalle-nota-dano" placeholder="ej. tapa rota"></label>
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancelar-detalle">Cancelar</button>
+                    <button type="submit">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
 </body>
 </html>

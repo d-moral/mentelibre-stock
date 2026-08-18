@@ -48,12 +48,14 @@ async function crear(req, res) {
         for (const item of items) {
             const tieneProducto = !!item.producto_id;
             const tieneSet = !!item.set_id;
+            const tieneDetalle = !!item.producto_detalle_id;
 
-            if (tieneProducto === tieneSet) {
+            if ([tieneProducto, tieneSet, tieneDetalle].filter(Boolean).length !== 1) {
                 return res.status(400).json({
-                    error: 'Cada item debe tener producto_id O set_id (uno solo), y cantidad mayor a 0',
+                    error: 'Cada item debe tener producto_id, set_id o producto_detalle_id (uno solo), y cantidad mayor a 0',
                 });
             }
+
             if (!item.cantidad || item.cantidad <= 0) {
                 return res.status(400).json({
                     error: 'Cada item debe tener cantidad mayor a 0',
@@ -89,10 +91,11 @@ async function actualizar(req, res) {
         for (const item of items) {
             const tieneProducto = !!item.producto_id;
             const tieneSet = !!item.set_id;
+            const tieneDetalle = !!item.producto_detalle_id;
 
-            if (tieneProducto === tieneSet) {
+            if ([tieneProducto, tieneSet, tieneDetalle].filter(Boolean).length !== 1) {
                 return res.status(400).json({
-                    error: 'Cada item debe tener producto_id O set_id (uno solo), y cantidad mayor a 0',
+                    error: 'Cada item debe tener producto_id, set_id o producto_detalle_id (uno solo), y cantidad mayor a 0',
                 });
             }
             if (!item.cantidad || item.cantidad <= 0) {
