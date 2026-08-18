@@ -20,8 +20,6 @@ class Cliente {
     }
 
     static async listar({ busqueda = '', tipo = '', limite = 10, pagina = 1 }) {
-        await pool.query('ALTER TABLE pedido_items ADD COLUMN IF NOT EXISTS es_mayor BOOLEAN DEFAULT false;');
-        await pool.query('ALTER TABLE clientes ADD COLUMN IF NOT EXISTS es_revendedor BOOLEAN NOT NULL DEFAULT false;');
 
         const offset = (pagina - 1) * limite;
         const whereConditions = [];

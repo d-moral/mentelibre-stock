@@ -90,8 +90,6 @@ async function crear({ dni, nombre_cliente, direccion, contacto, items, metodo_p
             });
         }
 
-        await client.query('ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS registrar_revendedor BOOLEAN DEFAULT false;');
-
         const { rows: pedidoRows } = await client.query(
             `INSERT INTO pedidos (dni, nombre_cliente, direccion, contacto, total, ganancia_real, metodo_pago, destinatario, estado, registrar_revendedor)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pendiente', $9)
@@ -100,8 +98,6 @@ async function crear({ dni, nombre_cliente, direccion, contacto, items, metodo_p
         );
 
         const nuevoPedido = pedidoRows[0];
-
-        await client.query('ALTER TABLE pedido_items ADD COLUMN IF NOT EXISTS es_mayor BOOLEAN DEFAULT false;');
 
         for (const item of itemsProcesados) {
             await client.query(

@@ -91,6 +91,7 @@ ALTER TABLE pedido_items ADD COLUMN IF NOT EXISTS set_id INTEGER REFERENCES sets
 ALTER TABLE pedido_items ADD COLUMN IF NOT EXISTS set_nombre VARCHAR(150);
 ALTER TABLE pedido_items ALTER COLUMN producto_id DROP NOT NULL;
 ALTER TABLE pedido_items ADD COLUMN IF NOT EXISTS tipo VARCHAR(20) NOT NULL DEFAULT 'minorista';
+ALTER TABLE pedido_items ADD COLUMN IF NOT EXISTS es_mayor BOOLEAN NOT NULL DEFAULT false;
 
 
 -- 8. Lotes de productos en detalle (dañados, precio propio)
