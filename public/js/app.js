@@ -106,14 +106,33 @@ document.querySelectorAll('.subtab-btn-set').forEach(btn => {
     });
 });
 
+let rotacionCache = {};
+const DIAS_ROTACION = 30;
+
 async function cargarProductos() {
     const res = await fetch(`${API}/productos`);
     productosCache = await res.json();
     await cargarLotesDetalle();
+    await cargarRotacion();
     actualizarFiltroSecciones();
     actualizarResumenStock();
     cargarProductosMasVendidos();
     renderizarProductos();
+}
+
+async function cargarRotacion() {
+    try {
+        const res = await fetch(`${API}/productos/rotacion`);
+        if (!res.ok) { rotacionCache = {}; return; }
+        const { dias, ventas } = await res.json();
+        rotacionCache = {};
+        ventas.forEach(v => {
+            rotacionCache[v.producto_id] = v.total_vendido / dias;
+        });
+    } catch (err) {
+        console.error('Error al cargar rotación:', err);
+        rotacionCache = {};
+    }
 }
 
 async function cargarLotesDetalle() {
@@ -256,6 +275,7 @@ function renderizarProductos() {
             <th>Nombre</th>
             <th>Sección</th>
             <th>Stock</th>
+            <th>Rotación</th>
             <th>Precio venta</th>
             <th>Precio mayorista</th>
             <th>Disponibilidad</th>
@@ -282,10 +302,20 @@ function renderizarProductos() {
         const etiqueta = disponible ? 'disponible' : 'sin stock';
         const claseEstado = disponible ? 'estado-activo' : 'estado-sin_stock';
 
+        const ritmoDiario = rotacionCache[p.id];
+        let rotacionTexto = 'Sin ventas recientes';
+        let claseRotacion = 'rotacion-sin-datos';
+        if (ritmoDiario) {
+            const diasRestantes = p.stock_actual / ritmoDiario;
+            rotacionTexto = `${Math.floor(diasRestantes)} días`;
+            claseRotacion = diasRestantes <= 7 ? 'rotacion-critica' : (diasRestantes <= 15 ? 'rotacion-alerta' : 'rotacion-ok');
+        }
+
         tr.innerHTML = `
             <td>${p.nombre}</td>
             <td>${p.seccion || '-'}</td>
             <td>${p.stock_actual}</td>
+            <td class="${claseRotacion}">${rotacionTexto}</td>
             <td>${formatearPrecio(p.precio_venta)}</td>
             <td>${p.precio_venta_mayor ? formatearPrecio(p.precio_venta_mayor) : '-'}</td>
             <td class="${claseEstado}">${etiqueta}</td>
@@ -329,7 +359,7 @@ async function toggleDetalleProducto(id) {
     filaDetalle.id = `detalle-producto-${id}`;
     filaDetalle.className = 'fila-detalle-producto';
     filaDetalle.innerHTML = `
-    <td colspan="7">
+    <td colspan="8">
       <p class="detalle-descripcion">${p.descripcion || 'Sin descripción'}</p>
       ${lotesActivos.length > 0 ? `
         <p class="detalle-descripcion"><strong>Lotes en detalle:</strong></p>

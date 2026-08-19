@@ -115,6 +115,20 @@ async function masVendidos(limite = 5) {
     return result.rows;
 }
 
+async function ventasRecientes(dias = 30) {
+    const result = await pool.query(
+        `SELECT pi.producto_id, SUM(pi.cantidad)::INT AS total_vendido
+     FROM pedidos p
+     JOIN pedido_items pi ON pi.pedido_id = p.id
+     WHERE (p.estado = 'confirmado' OR p.estado = 'vendido')
+       AND p.fecha >= NOW() - ($1 || ' days')::INTERVAL
+       AND pi.producto_id IS NOT NULL
+     GROUP BY pi.producto_id`,
+        [dias]
+    );
+    return result.rows;
+}
+
 async function buscar(texto, limite = 5) {
     const result = await pool.query(
         `SELECT id, nombre, seccion, stock_actual
@@ -126,4 +140,4 @@ async function buscar(texto, limite = 5) {
     );
     return result.rows;
 }
-module.exports = { getAll, getById, create, update, reponerStock, remove, estaDisponible, masVendidos, buscar };
+module.exports = { getAll, getById, create, update, reponerStock, remove, estaDisponible, masVendidos, buscar, ventasRecientes };
