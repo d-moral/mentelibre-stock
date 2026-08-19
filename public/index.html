@@ -28,6 +28,7 @@
             <h2>Productos</h2>
             <div>
                 <button id="btn-ver-proveedores" class="btn-secundario">Ver proveedores</button>
+                <button id="btn-ver-gastos" class="btn-secundario">Gastos</button>
                 <button id="btn-nuevo-producto">+ Nuevo producto</button>
             </div>
         </div>
@@ -134,6 +135,14 @@
                 <div class="ganancia-total">
                     <span class="ganancia-label">Margen</span>
                     <span id="ganancia-margen-valor" class="ganancia-valor ganancia-valor-real"></span>
+                </div>
+                <div class="ganancia-total">
+                    <span class="ganancia-label">Gastos</span>
+                    <span id="ganancia-gastos-valor" class="ganancia-valor ganancia-valor-gasto"></span>
+                </div>
+                <div class="ganancia-total">
+                    <span class="ganancia-label">Ganancia neta</span>
+                    <span id="ganancia-neta-valor" class="ganancia-valor ganancia-valor-real"></span>
                 </div>
             </div>
 
@@ -337,6 +346,25 @@
             <div id="lista-proveedores"></div>
             <div class="modal-actions">
                 <button type="button" id="btn-cerrar-proveedores">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: gastos -->
+    <div id="modal-gastos" class="modal hidden">
+        <div class="modal-content">
+            <h3>Gastos</h3>
+            <form id="form-gasto">
+                <label>Descripción <input type="text" id="gasto-descripcion" placeholder="Ej. Nafta camioneta" required></label>
+                <label>Monto <input type="number" step="0.01" min="0" id="gasto-monto" required></label>
+                <label>Fecha (opcional) <input type="date" id="gasto-fecha"></label>
+                <div class="modal-actions">
+                    <button type="submit">+ Agregar gasto</button>
+                </div>
+            </form>
+            <div id="lista-gastos"></div>
+            <div class="modal-actions">
+                <button type="button" id="btn-cerrar-gastos">Cerrar</button>
             </div>
         </div>
     </div>
