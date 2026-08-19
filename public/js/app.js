@@ -1083,7 +1083,7 @@ function opcionesProductoFiltradas(seccion, busqueda) {
             const noDisponible = p.stock_actual <= 0;
             const etiquetaStock = noDisponible ? '(sin stock)' : `(stock: ${p.stock_actual})`;
             return `<option value="${p.id}" ${noDisponible ? 'disabled' : ''}>
-        ${p.nombre} ${etiquetaStock}
+        ${p.nombre} ${formatearPrecio(p.precio_venta)} ${etiquetaStock}
       </option>`;
         })
         .join('');
@@ -1098,7 +1098,7 @@ function opcionesDetalleFiltradas(busqueda) {
             const sinStock = l.cantidad <= 0;
             const nombreMostrar = l.nombre_personalizado || l.producto_nombre;
             return `<option value="d-${l.id}" ${sinStock ? 'disabled' : ''}>
-        ${nombreMostrar} — remate ${formatearPrecio(l.precio_venta)} (stock: ${l.cantidad})
+        ${nombreMostrar} ${formatearPrecio(l.precio_venta)} (stock: ${l.cantidad})
       </option>`;
         })
         .join('');
