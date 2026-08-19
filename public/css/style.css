@@ -793,3 +793,12 @@ th {
 .subtab-btn-set:hover:not(.active) {
     background: #f1f5f9;
 }
+
+.gastos-total {
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.ganancia-valor-gasto {
+    color: #dc2626;
+}

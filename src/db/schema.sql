@@ -113,3 +113,13 @@ ALTER TABLE productos_detalle ADD COLUMN IF NOT EXISTS cantidad_original INTEGER
 ALTER TABLE pedido_items ADD COLUMN IF NOT EXISTS producto_detalle_id INTEGER REFERENCES productos_detalle(id) ON DELETE SET NULL;
 ALTER TABLE pedido_items ADD COLUMN IF NOT EXISTS producto_detalle_nota TEXT;
 ALTER TABLE productos_detalle ADD COLUMN IF NOT EXISTS nombre_personalizado VARCHAR(150);
+
+
+-- 10. Gastos operativos (para descontar de la ganancia real)
+CREATE TABLE IF NOT EXISTS gastos (
+                                      id              SERIAL PRIMARY KEY,
+                                      descripcion     VARCHAR(255) NOT NULL,
+    monto           NUMERIC(10,2) NOT NULL,
+    fecha           TIMESTAMP NOT NULL DEFAULT NOW(),
+    creado_en       TIMESTAMP NOT NULL DEFAULT NOW()
+    );

@@ -390,6 +390,76 @@ document.getElementById('btn-cerrar-proveedores').addEventListener('click', () =
     modalProveedores.classList.add('hidden');
 });
 
+let gastosCache = [];
+const modalGastos = document.getElementById('modal-gastos');
+
+document.getElementById('btn-ver-gastos').addEventListener('click', async () => {
+    await cargarGastos();
+    modalGastos.classList.remove('hidden');
+});
+
+document.getElementById('btn-cerrar-gastos').addEventListener('click', () => {
+    modalGastos.classList.add('hidden');
+});
+
+async function cargarGastos() {
+    const res = await fetch(`${API}/gastos`);
+    gastosCache = res.ok ? await res.json() : [];
+    renderizarGastos();
+}
+
+function renderizarGastos() {
+    const contenedor = document.getElementById('lista-gastos');
+
+    if (gastosCache.length === 0) {
+        contenedor.innerHTML = '<p>Todavía no cargaste ningún gasto.</p>';
+        return;
+    }
+
+    const total = gastosCache.reduce((acc, g) => acc + Number(g.monto), 0);
+
+    contenedor.innerHTML = `
+    <p class="gastos-total">Total: ${formatearPrecio(total)}</p>
+    <table class="detalle-ganancia-items">
+      <thead><tr><th>Fecha</th><th>Descripción</th><th>Monto</th><th></th></tr></thead>
+      <tbody>
+        ${gastosCache.map(g => `
+          <tr>
+            <td>${formatearFecha(g.fecha)}</td>
+            <td>${g.descripcion}</td>
+            <td>${formatearPrecio(g.monto)}</td>
+            <td><button type="button" class="btn-eliminar-gasto" data-id="${g.id}">✕</button></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+
+    contenedor.querySelectorAll('.btn-eliminar-gasto').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (!confirm('¿Eliminar este gasto?')) return;
+            await fetch(`${API}/gastos/${btn.dataset.id}`, { method: 'DELETE' });
+            await cargarGastos();
+        });
+    });
+}
+
+document.getElementById('form-gasto').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const descripcion = document.getElementById('gasto-descripcion').value.trim();
+    const monto = document.getElementById('gasto-monto').value;
+    const fecha = document.getElementById('gasto-fecha').value || null;
+
+    await fetch(`${API}/gastos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ descripcion, monto, fecha })
+    });
+
+    e.target.reset();
+    await cargarGastos();
+});
+
 function renderizarProveedores() {
     const contenedor = document.getElementById('lista-proveedores');
 
@@ -804,7 +874,7 @@ async function toggleDetallePedido(id) {
     filaPedido.insertAdjacentElement('afterend', filaDetalle);
 }
 
-function actualizarGananciaDia() {
+async function actualizarGananciaDia() {
     const tarjeta = document.getElementById('tarjeta-ganancia');
     const textoRango = document.getElementById('rango-ganancia-texto');
 
@@ -859,6 +929,22 @@ function actualizarGananciaDia() {
         comparativoEl.textContent = `${flecha} ${Math.abs(variacion).toFixed(0)}% vs. período anterior`;
         comparativoEl.className = `ganancia-comparativo ${variacion >= 0 ? 'positivo' : 'negativo'}`;
     }
+
+    let totalGastos = 0;
+    try {
+        const resGastos = await fetch(`${API}/gastos/total?desde=${desde}&hasta=${hasta}`);
+        if (resGastos.ok) {
+            const data = await resGastos.json();
+            totalGastos = Number(data.total) || 0;
+        }
+    } catch (err) {
+        console.error('Error al cargar gastos del período:', err);
+    }
+
+    const gananciaNeta = gananciaReal - totalGastos;
+
+    document.getElementById('ganancia-gastos-valor').textContent = formatearPrecio(totalGastos);
+    document.getElementById('ganancia-neta-valor').textContent = formatearPrecio(gananciaNeta);
 
     tarjeta.classList.remove('hidden');
 }
