@@ -473,6 +473,23 @@ th {
     color: #0d9488;
 }
 
+.ganancia-comparativo {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.ganancia-comparativo.positivo {
+    color: #16a34a;
+}
+
+.ganancia-comparativo.negativo {
+    color: #dc2626;
+}
+
+.ganancia-comparativo.neutro {
+    color: #94a3b8;
+}
+
 .ganancia-desglose {
     display: flex;
     gap: 0.8rem;
