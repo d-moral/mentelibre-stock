@@ -371,6 +371,9 @@ th {
     color: white;
 }
 
+.subtab-btn-stock:hover:not(.active) {
+    background: #f1f5f9;
+}
 
 .subtab-btn-cliente {
     background: white;
