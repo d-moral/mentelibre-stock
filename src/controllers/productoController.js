@@ -118,4 +118,15 @@ async function masVendidos(req, res) {
   }
 }
 
-module.exports = { listar, obtenerUno, crear, actualizar, reponerStock, eliminar, masVendidos };
+async function rotacion(req, res) {
+  try {
+    const dias = 30;
+    const ventas = await Producto.ventasRecientes(dias);
+    res.json({ dias, ventas });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al calcular rotación de stock' });
+  }
+}
+
+module.exports = { listar, obtenerUno, crear, actualizar, reponerStock, eliminar, masVendidos, rotacion };

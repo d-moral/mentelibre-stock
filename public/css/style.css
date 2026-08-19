@@ -113,6 +113,11 @@ th {
 .estado-vendido { color: #16a34a; font-weight: 600; }
 .estado-cancelado { color: #dc2626; font-weight: 600; }
 
+.rotacion-critica { color: #dc2626; font-weight: 600; }
+.rotacion-alerta { color: #ea580c; font-weight: 600; }
+.rotacion-ok { color: #16a34a; }
+.rotacion-sin-datos { color: #94a3b8; }
+
 .acciones-cell {
     display: flex;
     gap: 0.4rem;
