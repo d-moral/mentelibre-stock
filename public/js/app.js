@@ -629,6 +629,25 @@ function calcularRangoFecha(fechaISO, granularidad) {
     return { desde: fechaISO, hasta: fechaISO };
 }
 
+function calcularRangoPeriodoAnterior(fechaISO, granularidad) {
+    const fecha = new Date(fechaISO + 'T00:00:00');
+
+    if (granularidad === 'semana') {
+        const fechaAnterior = new Date(fecha);
+        fechaAnterior.setDate(fecha.getDate() - 7);
+        return calcularRangoFecha(fechaLocalISO(fechaAnterior), 'semana');
+    }
+
+    if (granularidad === 'mes') {
+        const fechaAnterior = new Date(fecha.getFullYear(), fecha.getMonth() - 1, 1);
+        return calcularRangoFecha(fechaLocalISO(fechaAnterior), 'mes');
+    }
+
+    const fechaAnterior = new Date(fecha);
+    fechaAnterior.setDate(fecha.getDate() - 1);
+    return calcularRangoFecha(fechaLocalISO(fechaAnterior), 'dia');
+}
+
 function fechaEnRango(fechaPedidoISO, desde, hasta) {
     const f = fechaLocalISO(fechaPedidoISO);
     return f >= desde && f <= hasta;
@@ -787,10 +806,29 @@ function actualizarGananciaDia() {
         .filter(p => p.destinatario === 'ludmila')
         .reduce((acc, p) => acc + Number(p.total), 0);
 
+    const margen = total > 0 ? (gananciaReal / total) * 100 : 0;
+
     document.getElementById('ganancia-total-valor').textContent = formatearPrecio(total);
     document.getElementById('ganancia-real-valor').textContent = formatearPrecio(gananciaReal);
     document.getElementById('ganancia-elias-valor').textContent = formatearPrecio(totalElias);
     document.getElementById('ganancia-ludmila-valor').textContent = formatearPrecio(totalLudmila);
+    document.getElementById('ganancia-margen-valor').textContent = `${margen.toFixed(1)}%`;
+
+    const { desde: desdeAnterior, hasta: hastaAnterior } = calcularRangoPeriodoAnterior(fechaFiltroActiva, granularidadActiva);
+    const totalAnterior = pedidosCache
+        .filter(p => fechaEnRango(p.fecha, desdeAnterior, hastaAnterior) && (p.estado === 'confirmado' || p.estado === 'vendido'))
+        .reduce((acc, p) => acc + Number(p.total), 0);
+
+    const comparativoEl = document.getElementById('ganancia-comparativo');
+    if (totalAnterior === 0) {
+        comparativoEl.textContent = total > 0 ? 'sin datos del período anterior' : '';
+        comparativoEl.className = 'ganancia-comparativo neutro';
+    } else {
+        const variacion = ((total - totalAnterior) / totalAnterior) * 100;
+        const flecha = variacion >= 0 ? '▲' : '▼';
+        comparativoEl.textContent = `${flecha} ${Math.abs(variacion).toFixed(0)}% vs. período anterior`;
+        comparativoEl.className = `ganancia-comparativo ${variacion >= 0 ? 'positivo' : 'negativo'}`;
+    }
 
     tarjeta.classList.remove('hidden');
 }
