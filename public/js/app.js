@@ -1717,18 +1717,18 @@ document.getElementById('busqueda-global').addEventListener('input', (e) => {
     busquedaGlobalTimeout = setTimeout(async () => {
         try {
             const res = await fetch(`${API}/buscar?q=${encodeURIComponent(texto)}`);
-            const { productos, clientes, sets } = await res.json();
-            renderizarResultadosBusquedaGlobal(productos || [], clientes || [], sets || []);
+            const { productos, clientes, sets, detalles } = await res.json();
+            renderizarResultadosBusquedaGlobal(productos || [], clientes || [], sets || [], detalles || []);
         } catch (err) {
             console.error('Error en búsqueda global:', err);
         }
     }, 300);
 });
 
-function renderizarResultadosBusquedaGlobal(productos, clientes, sets) {
+function renderizarResultadosBusquedaGlobal(productos, clientes, sets, detalles) {
     const contenedor = document.getElementById('busqueda-global-resultados');
 
-    if (productos.length === 0 && clientes.length === 0 && sets.length === 0) {
+    if (productos.length === 0 && clientes.length === 0 && sets.length === 0 && detalles.length === 0) {
         contenedor.innerHTML = '<div class="busqueda-global-vacio">Sin resultados</div>';
         contenedor.classList.remove('hidden');
         return;
@@ -1741,6 +1741,15 @@ function renderizarResultadosBusquedaGlobal(productos, clientes, sets) {
         html += productos.map(p => `
       <div class="busqueda-global-item" onclick="irAProductoDesdeBusqueda('${p.nombre.replace(/'/g, "\\'")}')">
         ${p.nombre} <span class="busqueda-global-detalle">${p.seccion || 'Sin sección'} · stock: ${p.stock_actual}</span>
+      </div>
+    `).join('');
+    }
+
+    if (detalles.length > 0) {
+        html += '<div class="busqueda-global-seccion">Dañados</div>';
+        html += detalles.map(d => `
+      <div class="busqueda-global-item" onclick="irADetalleDesdeBusqueda('${d.producto_nombre.replace(/'/g, "\\'")}')">
+        ${d.producto_nombre} <span class="busqueda-global-detalle">stock: ${d.cantidad} · ${formatearPrecio(d.precio_venta)}</span>
       </div>
     `).join('');
     }
@@ -1774,6 +1783,16 @@ function cerrarBusquedaGlobal() {
 
 function irAProductoDesdeBusqueda(nombre) {
     document.querySelector('.tab-btn[data-tab="stock"]').click();
+    document.getElementById('filtro-producto-busqueda').value = nombre;
+    busquedaProductoActiva = nombre.toLowerCase();
+    paginaProductos = 1;
+    renderizarProductos();
+    cerrarBusquedaGlobal();
+}
+
+function irADetalleDesdeBusqueda(nombre) {
+    document.querySelector('.tab-btn[data-tab="stock"]').click();
+    document.querySelector('.subtab-btn-stock[data-disponibilidad="con_detalle"]').click();
     document.getElementById('filtro-producto-busqueda').value = nombre;
     busquedaProductoActiva = nombre.toLowerCase();
     paginaProductos = 1;

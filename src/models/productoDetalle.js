@@ -156,4 +156,19 @@ async function getTodosConHistorial() {
     return result.rows;
 }
 
-module.exports = { getAllActivos, getByProductoId, getById, crear, actualizar, cancelar, descontarStock, getTodosConHistorial };
+async function buscar(texto, limite = 5) {
+    const result = await pool.query(
+        `SELECT pd.id, pd.producto_id, pd.cantidad, pd.precio_venta,
+                COALESCE(pd.nombre_personalizado, p.nombre) AS producto_nombre
+         FROM productos_detalle pd
+         JOIN productos p ON p.id = pd.producto_id
+         WHERE pd.cantidad > 0 AND pd.estado = 'activo'
+           AND (pd.nombre_personalizado ILIKE $1 OR p.nombre ILIKE $1 OR pd.nota_dano ILIKE $1)
+         ORDER BY COALESCE(pd.nombre_personalizado, p.nombre)
+         LIMIT $2`,
+        [`%${texto}%`, limite]
+    );
+    return result.rows;
+}
+
+module.exports = { getAllActivos, getByProductoId, getById, crear, actualizar, cancelar, descontarStock, getTodosConHistorial, buscar };
