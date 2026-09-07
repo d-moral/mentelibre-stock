@@ -33,15 +33,16 @@ function fechaLocalISO(fechaISO) {
 
 // ---------- PAGINACIÓN ----------
 const TAM_PAGINA = 10;
+const TAM_PAGINA_GASTOS = 5;
 
-function paginar(items, paginaActual) {
-    const totalPaginas = Math.max(1, Math.ceil(items.length / TAM_PAGINA));
+function paginar(items, paginaActual, tamano = TAM_PAGINA) {
+    const totalPaginas = Math.max(1, Math.ceil(items.length / tamano));
     const paginaValida = Math.min(Math.max(1, paginaActual), totalPaginas);
-    const inicio = (paginaValida - 1) * TAM_PAGINA;
+    const inicio = (paginaValida - 1) * tamano;
     return {
         pagina: paginaValida,
         totalPaginas,
-        itemsPagina: items.slice(inicio, inicio + TAM_PAGINA),
+        itemsPagina: items.slice(inicio, inicio + tamano),
     };
 }
 
@@ -391,9 +392,14 @@ document.getElementById('btn-cerrar-proveedores').addEventListener('click', () =
 });
 
 let gastosCache = [];
+let filtroFechaGastos = null;
+let paginaGastos = 1;
 const modalGastos = document.getElementById('modal-gastos');
 
 document.getElementById('btn-ver-gastos').addEventListener('click', async () => {
+    filtroFechaGastos = null;
+    paginaGastos = 1;
+    document.getElementById('filtro-fecha-gastos').value = '';
     await cargarGastos();
     modalGastos.classList.remove('hidden');
 });
@@ -401,6 +407,24 @@ document.getElementById('btn-ver-gastos').addEventListener('click', async () => 
 document.getElementById('btn-cerrar-gastos').addEventListener('click', () => {
     modalGastos.classList.add('hidden');
 });
+
+document.getElementById('filtro-fecha-gastos').addEventListener('change', (e) => {
+    filtroFechaGastos = e.target.value || null;
+    paginaGastos = 1;
+    renderizarGastos();
+});
+
+document.getElementById('btn-limpiar-fecha-gastos').addEventListener('click', () => {
+    filtroFechaGastos = null;
+    paginaGastos = 1;
+    document.getElementById('filtro-fecha-gastos').value = '';
+    renderizarGastos();
+});
+
+function cambiarPaginaGastos(nuevaPagina) {
+    paginaGastos = nuevaPagina;
+    renderizarGastos();
+}
 
 async function cargarGastos() {
     const res = await fetch(`${API}/gastos`);
@@ -411,29 +435,63 @@ async function cargarGastos() {
 function renderizarGastos() {
     const contenedor = document.getElementById('lista-gastos');
 
-    if (gastosCache.length === 0) {
-        contenedor.innerHTML = '<p>Todavía no cargaste ningún gasto.</p>';
+    const gastosAMostrar = filtroFechaGastos
+        ? gastosCache.filter(g => fechaLocalISO(g.fecha) === filtroFechaGastos)
+        : gastosCache;
+
+    if (gastosAMostrar.length === 0) {
+        contenedor.innerHTML = filtroFechaGastos
+            ? '<p>No hay gastos cargados en esa fecha.</p>'
+            : '<p>Todavía no cargaste ningún gasto.</p>';
+        document.getElementById('paginacion-gastos').innerHTML = '';
         return;
     }
 
-    const total = gastosCache.reduce((acc, g) => acc + Number(g.monto), 0);
+    const total = gastosAMostrar.reduce((acc, g) => acc + Number(g.monto), 0);
 
-    contenedor.innerHTML = `
-    <p class="gastos-total">Total: ${formatearPrecio(total)}</p>
-    <table class="detalle-ganancia-items">
-      <thead><tr><th>Fecha</th><th>Descripción</th><th>Monto</th><th></th></tr></thead>
-      <tbody>
-        ${gastosCache.map(g => `
+    const { pagina, totalPaginas, itemsPagina } = paginar(gastosAMostrar, paginaGastos, TAM_PAGINA_GASTOS);
+    paginaGastos = pagina;
+
+    // itemsPagina ya viene ordenado por fecha DESC desde el backend;
+    // agrupamos por día (manteniendo ese orden) para mostrar el subtotal de cada fecha.
+    const grupos = new Map();
+    itemsPagina.forEach(g => {
+        const clave = fechaLocalISO(g.fecha);
+        if (!grupos.has(clave)) grupos.set(clave, []);
+        grupos.get(clave).push(g);
+    });
+
+    let filas = '';
+    grupos.forEach((gastosDelDia) => {
+        const totalDia = gastosDelDia.reduce((acc, g) => acc + Number(g.monto), 0);
+        filas += `
+          <tr class="fila-subtotal-gasto">
+            <td colspan="2">${formatearFecha(gastosDelDia[0].fecha)}</td>
+            <td>${formatearPrecio(totalDia)}</td>
+            <td></td>
+          </tr>
+        `;
+        filas += gastosDelDia.map(g => `
           <tr>
             <td>${formatearFecha(g.fecha)}</td>
             <td>${g.descripcion}</td>
             <td>${formatearPrecio(g.monto)}</td>
             <td><button type="button" class="btn-eliminar-gasto" data-id="${g.id}">✕</button></td>
           </tr>
-        `).join('')}
+        `).join('');
+    });
+
+    contenedor.innerHTML = `
+    <p class="gastos-total">Total: ${formatearPrecio(total)}</p>
+    <table class="detalle-ganancia-items">
+      <thead><tr><th>Fecha</th><th>Descripción</th><th>Monto</th><th></th></tr></thead>
+      <tbody>
+        ${filas}
       </tbody>
     </table>
   `;
+
+    renderizarControlesPaginacion('paginacion-gastos', pagina, totalPaginas, 'cambiarPaginaGastos');
 
     contenedor.querySelectorAll('.btn-eliminar-gasto').forEach(btn => {
         btn.addEventListener('click', async () => {

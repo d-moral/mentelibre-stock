@@ -802,6 +802,12 @@ th {
     margin-bottom: 0.5rem;
 }
 
+.fila-subtotal-gasto td {
+    background: #f1f5f9;
+    font-weight: 600;
+    color: #334155;
+}
+
 .ganancia-valor-gasto {
     color: #dc2626;
 }
