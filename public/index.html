@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mayorista MenteLibre</title>
+    <link rel="icon" type="image/png" href="img/logo.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+    <h1>Mayorista MenteLibre</h1>
+    <div class="busqueda-global-contenedor">
+        <input type="text" id="busqueda-global" placeholder="Buscar por producto, cliente o set..." autocomplete="off">
+        <div id="busqueda-global-resultados" class="busqueda-global-resultados hidden"></div>
+    </div>
+    <nav>
+        <button class="tab-btn active" data-tab="stock">Stock</button>
+        <button class="tab-btn" data-tab="pedidos">Pedidos</button>
+        <button class="tab-btn" data-tab="combos">Sets</button>
+        <button class="tab-btn" data-tab="clientes">Clientes</button>
+    </nav>
+</header>
+
+<main>
+    <!-- PANEL: STOCK -->
+    <section id="tab-stock" class="tab-panel active">
+        <div class="panel-header">
+            <h2>Productos</h2>
+            <div>
+                <button id="btn-ver-proveedores" class="btn-secundario">Ver proveedores</button>
+                <button id="btn-ver-gastos" class="btn-secundario">Gastos</button>
+                <button id="btn-nuevo-producto">+ Nuevo producto</button>
+            </div>
+        </div>
+        <div class="subtabs">
+            <button class="subtab-btn-stock active" data-disponibilidad="">Todos</button>
+            <button class="subtab-btn-stock" data-disponibilidad="disponible">Disponibles</button>
+            <button class="subtab-btn-stock" data-disponibilidad="sin_stock">Sin stock</button>
+            <button class="subtab-btn-stock" data-disponibilidad="con_detalle">Con detalle</button>
+        </div>
+
+        <div class="filtro-seccion">
+            <label>Sección: </label>
+            <select id="filtro-seccion">
+                <option value="">Todas</option>
+            </select>
+            <label>Buscar: </label>
+            <input type="text" id="filtro-producto-busqueda" class="input-busqueda" placeholder="Buscar producto...">
+        </div>
+
+
+        <div id="resumen-stock" class="resumen-stock">
+            <div class="resumen-item">
+                <span class="resumen-label">Stock total</span>
+                <span id="resumen-unidades" class="resumen-valor">0</span>
+            </div>
+            <div class="resumen-item">
+                <span class="resumen-label">Invertido</span>
+                <span id="resumen-invertido" class="resumen-valor">$0.00</span>
+            </div>
+            <div class="resumen-item">
+                <span class="resumen-label">Plata perdida</span>
+                <span id="resumen-perdida" class="resumen-valor">$0.00</span>
+            </div>
+            <div class="resumen-item">
+                <span class="resumen-label">Pérdida histórica</span>
+                <span id="resumen-perdida-historica" class="resumen-valor">$0.00</span>
+            </div>
+        </div>
+
+        <div id="top-vendidos-stock" class="top-vendidos-stock hidden">
+            <h3>Más vendidos</h3>
+            <ol id="top-vendidos-lista"></ol>
+        </div>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Sección</th>
+                <th>Stock</th>
+                <th>Precio venta</th>
+                <th>Precio mayorista</th>
+                <th>Disponibilidad</th>
+                <th>Acciones</th>
+            </tr>
+            </thead>
+            <tbody id="tabla-productos"></tbody>
+        </table>
+        <div id="paginacion-productos" class="paginacion"></div>
+    </section>
+
+    <!-- PANEL: PEDIDOS -->
+    <section id="tab-pedidos" class="tab-panel">
+        <div class="panel-header">
+            <h2>Pedidos</h2>
+            <button id="btn-nuevo-pedido">+ Nuevo pedido</button>
+        </div>
+
+        <div class="subtabs">
+            <button class="subtab-btn active" data-substate="pendiente">Pendientes</button>
+            <button class="subtab-btn" data-substate="realizado">Realizados</button>
+            <button class="subtab-btn" data-substate="cancelado">Cancelados</button>
+
+            <div class="busqueda-pedidos-wrapper">
+                <label>Buscar: </label>
+                <input type="text" id="filtro-pedido-busqueda" class="input-busqueda" placeholder="Buscar por cliente o DNI...">
+            </div>
+        </div>
+
+        <div class="filtro-fecha">
+            <label>Ver por:
+                <select id="filtro-granularidad" class="select-filtro">
+                    <option value="dia">Día</option>
+                    <option value="semana">Semana</option>
+                    <option value="mes">Mes</option>
+                </select>
+            </label>
+            <label>Fecha: <input type="date" id="filtro-fecha"></label>
+            <button id="btn-limpiar-fecha" class="btn-secundario">Ver todas</button>
+            <span id="rango-ganancia-texto" class="rango-ganancia-texto"></span>
+        </div>
+
+        <div id="tarjeta-ganancia" class="tarjeta-ganancia hidden">
+            <div class="ganancia-metricas">
+                <div class="ganancia-total">
+                    <span class="ganancia-label">Total vendido</span>
+                    <span id="ganancia-total-valor" class="ganancia-valor"></span>
+                    <span id="ganancia-comparativo" class="ganancia-comparativo"></span>
+                </div>
+                <div class="ganancia-total">
+                    <span class="ganancia-label">Ganancia real</span>
+                    <span id="ganancia-real-valor" class="ganancia-valor ganancia-valor-real"></span>
+                </div>
+                <div class="ganancia-total">
+                    <span class="ganancia-label">Margen</span>
+                    <span id="ganancia-margen-valor" class="ganancia-valor ganancia-valor-real"></span>
+                </div>
+                <div class="ganancia-total">
+                    <span class="ganancia-label">Gastos</span>
+                    <span id="ganancia-gastos-valor" class="ganancia-valor ganancia-valor-gasto"></span>
+                </div>
+                <div class="ganancia-total">
+                    <span class="ganancia-label">Ganancia neta</span>
+                    <span id="ganancia-neta-valor" class="ganancia-valor ganancia-valor-real"></span>
+                </div>
+            </div>
+
+            <div class="ganancia-desglose">
+                <div class="chip-persona">
+                    <span class="chip-nombre">Elias</span>
+                    <span id="ganancia-elias-valor" class="chip-valor"></span>
+                </div>
+                <div class="chip-persona">
+                    <span class="chip-nombre">Ludmila</span>
+                    <span id="ganancia-ludmila-valor" class="chip-valor"></span>
+                </div>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+            <tr>
+                <th></th>
+                <th>Cliente</th>
+                <th>Fecha</th>
+                <th>Total</th>
+                <th>Pago</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+            </thead>
+            <tbody id="tabla-pedidos"></tbody>
+        </table>
+        <div id="paginacion-pedidos" class="paginacion"></div>
+    </section>
+
+    <!-- PANEL: COMBOS -->
+    <section id="tab-combos" class="tab-panel">
+        <div class="panel-header">
+            <h2>Sets</h2>
+            <button id="btn-nuevo-set">+ Armar set</button>
+        </div>
+
+        <div class="subtabs">
+            <button class="subtab-btn-set active" data-disponibilidad-set="">Todos</button>
+            <button class="subtab-btn-set" data-disponibilidad-set="disponible">Disponibles</button>
+            <button class="subtab-btn-set" data-disponibilidad-set="sin_stock">Sin stock</button>
+        </div>
+
+        <div class="filtro-seccion">
+            <label>Buscar: </label>
+            <input type="text" id="filtro-set-busqueda" class="input-busqueda" placeholder="Buscar set...">
+        </div>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Stock</th>
+                <th>Precio venta</th>
+                <th>Precio mayorista</th>
+                <th>Disponibilidad</th>
+                <th>Acciones</th>
+            </tr>
+            </thead>
+            <tbody id="tabla-sets"></tbody>
+        </table>
+        <div id="paginacion-sets" class="paginacion"></div>
+    </section>
+
+    <!-- PANEL: CLIENTES -->
+    <section id="tab-clientes" class="tab-panel">
+        <div class="panel-header">
+            <h2>Agenda de Clientes</h2>
+        </div>
+
+        <div class="subtabs">
+            <button class="subtab-btn-cliente active" data-subtipo="">Todos</button>
+            <button class="subtab-btn-cliente" data-subtipo="mayor">Por Mayor</button>
+            <button class="subtab-btn-cliente" data-subtipo="menor">Por Menor</button>
+            <button class="subtab-btn-cliente" data-subtipo="revendedor">Revendedores</button>
+        </div>
+
+        <div class="filtro-seccion">
+            <label>Buscar: </label>
+            <input type="text" id="filtro-cliente-busqueda" class="input-busqueda" placeholder="Buscar por DNI o Nombre...">
+        </div>
+
+        <table>
+            <thead>
+            <tr>
+                <th>DNI</th>
+                <th>Nombre</th>
+                <th>Dirección</th>
+                <th>Contacto</th>
+                <th>Revendedor</th>
+                <th>Total Gastado</th>
+                <th>Acciones</th>
+            </tr>
+            </thead>
+            <tbody id="tabla-clientes"></tbody>
+        </table>
+
+        <div id="paginacion-clientes" class="paginacion"></div>
+    </section>
+
+<!-- MODAL: nuevo/editar producto -->
+<div id="modal-producto" class="modal hidden">
+    <div class="modal-content">
+        <h3 id="modal-producto-titulo">Nuevo producto</h3>
+        <form id="form-producto">
+            <input type="hidden" id="producto-id">
+            <label>Nombre <input type="text" id="producto-nombre" required></label>
+            <label>Descripción <input type="text" id="producto-descripcion"></label>
+            <label>Stock actual <input type="number" id="producto-stock" required></label>
+            <label>Precio compra <input type="number" step="0.01" id="producto-precio-compra" required></label>
+            <label>Precio venta <input type="number" step="0.01" id="producto-precio-venta" required></label>
+            <label>Precio venta mayorista <input type="number" step="0.01" id="producto-precio-venta-mayor"></label>
+            <label>Proveedor <input type="text" id="producto-proveedor"></label>
+            <label>Sección <input type="text" id="producto-seccion" placeholder="ej. limpieza"></label>
+            <div class="modal-actions">
+                <button type="button" id="btn-cancelar-producto">Cancelar</button>
+                <button type="submit">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: nuevo/editar combo -->
+<div id="modal-set" class="modal hidden">
+    <div class="modal-content">
+        <h3 id="modal-set-titulo">Nuevo set</h3>
+        <form id="form-set">
+            <input type="hidden" id="set-id">
+            <label>Nombre <input type="text" id="set-nombre" required></label>
+            <label>Descripción <input type="text" id="set-descripcion"></label>
+            <label>Precio venta <input type="number" step="0.01" id="set-precio-venta" required></label>
+            <label>Precio venta mayorista <input type="number" step="0.01" id="set-precio-venta-mayor"></label>
+            <label id="label-set-cantidad-armar">Cantidad a armar <input type="number" min="1" value="1" id="set-cantidad-armar" required></label>
+
+            <div id="bloque-set-items">
+                <h4>Productos</h4>
+                <div id="set-items"></div>
+                <button type="button" id="btn-agregar-set-item">+ Agregar producto</button>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" id="btn-cancelar-set">Cancelar</button>
+                <button type="submit">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: nuevo pedido -->
+    <div id="modal-pedido" class="modal modal-ancho hidden">
+    <div class="modal-content">
+        <h3>Nuevo pedido</h3>
+        <form id="form-pedido">
+            <label>DNI <input type="text" id="pedido-dni" required></label>
+            <span id="aviso-revendedor" class="aviso-revendedor hidden">✓ Cliente revendedor — se marcará "¿Mayor?" automáticamente</span>
+            <label id="label-registrar-revendedor" class="checkbox-mayor"><input type="checkbox" id="pedido-registrar-revendedor">Revendedor</label>
+            <label>Cliente <input type="text" id="pedido-cliente" required></label>
+            <label>Dirección <input type="text" id="pedido-direccion"></label>
+            <label>Contacto <input type="text" id="pedido-contacto"></label>
+
+            <label>Método de pago
+                <select id="pedido-metodo-pago" required>
+                    <option value="">Elegir...</option>
+                    <option value="efectivo">Efectivo</option>
+                    <option value="transferencia">Transferencia</option>
+                </select>
+            </label>
+
+            <label id="label-destinatario" class="hidden">Destinatario
+                <select id="pedido-destinatario">
+                    <option value="">Elegir...</option>
+                    <option value="elias">Elías</option>
+                    <option value="ludmila">Ludmila</option>
+                </select>
+            </label>
+
+            <h4>Productos</h4>
+            <div id="pedido-items"></div>
+            <button type="button" id="btn-agregar-item">+ Agregar producto</button>
+            <button type="button" id="btn-agregar-item-detalle">+ Agregar dañado</button>
+
+            <h4>Sets</h4>
+
+            <div id="pedido-items-combos"></div>
+            <button type="button" id="btn-agregar-item-combo">+ Agregar set</button>
+
+            <div class="modal-actions">
+                <button type="button" id="btn-cancelar-pedido">Cancelar</button>
+                <button type="submit">Crear pedido</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: proveedores -->
+    <div id="modal-proveedores" class="modal hidden">
+        <div class="modal-content">
+            <h3>Proveedores</h3>
+            <div id="lista-proveedores"></div>
+            <div class="modal-actions">
+                <button type="button" id="btn-cerrar-proveedores">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: gastos -->
+    <div id="modal-gastos" class="modal hidden">
+        <div class="modal-content">
+            <h3>Gastos</h3>
+            <form id="form-gasto">
+                <label>Descripción <input type="text" id="gasto-descripcion" placeholder="Ej. Nafta camioneta" required></label>
+                <label>Monto <input type="number" step="0.01" min="0" id="gasto-monto" required></label>
+                <label>Fecha (opcional) <input type="date" id="gasto-fecha"></label>
+                <div class="modal-actions">
+                    <button type="submit">+ Agregar gasto</button>
+                </div>
+            </form>
+            <div class="filtro-fecha">
+                <label>Fecha: <input type="date" id="filtro-fecha-gastos"></label>
+                <button type="button" id="btn-limpiar-fecha-gastos" class="btn-secundario">Ver todas</button>
+            </div>
+            <div id="lista-gastos"></div>
+            <div id="paginacion-gastos" class="paginacion"></div>
+            <div class="modal-actions">
+                <button type="button" id="btn-cerrar-gastos">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: marcar producto como detalle -->
+    <div id="modal-detalle" class="modal hidden">
+        <div class="modal-content">
+            <h3 id="modal-detalle-titulo">Marcar producto como detalle</h3>
+            <form id="form-detalle">
+                <input type="hidden" id="detalle-producto-id">
+                <input type="hidden" id="detalle-lote-id">
+                <label>Nombre de variante (opcional) <input type="text" id="detalle-nombre-personalizado" placeholder="Ej. Con tapa dañada"></label>
+                <label>Cantidad dañada <input type="number" min="1" id="detalle-cantidad" required></label>
+                <label>Precio de venta <input type="number" step="0.01" min="0" id="detalle-precio-venta" required></label>
+                <label>Descripción del daño <input type="text" id="detalle-nota-dano" placeholder="ej. tapa rota"></label>
+                <div class="modal-actions">
+                    <button type="button" id="btn-cancelar-detalle">Cancelar</button>
+                    <button type="submit">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
